@@ -1,9 +1,17 @@
+import logging
 import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from rag.src.api.routes import main as main_router
 from rag.src.common import settings
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s | %(levelname)-8s | %(name)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logging.getLogger("rag").setLevel(logging.DEBUG)
 
 origins = [
     "http://localhost",
