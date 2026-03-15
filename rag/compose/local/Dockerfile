@@ -8,6 +8,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project
 
 COPY rag ./rag
+COPY alembic.ini ./
 
 COPY rag/compose/local/start /start
 RUN sed -i 's/\r$//g' /start
