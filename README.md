@@ -34,6 +34,8 @@ The system is accessible via a CLI tool and a web interface.
 4. Ability to upload and index documents into an agent's knowledge store (PDF, TXT, MD, etc.).
 5. Natural language querying over the agent's indexed documents.
 6. LLM selection per agent — choose from OpenAI, Anthropic, Gemini, etc. with your own API key.
+7. Ability to attach tools to an agent (e.g., web search, code interpreter, external APIs).
+8. Ability to create custom tools and attach them to an agent.
 
 ### Orchestration
 1. LangGraph visualization — view the response pipeline graph for each agent in the web UI.
