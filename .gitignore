@@ -1,0 +1,76 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# uv
+.python-version
+
+# Ruff / linting
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+logs/
+
+# Node / Next.js / React (frontend)
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+
+# React (CRA)
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# ESLint / Prettier
+.eslintcache
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
