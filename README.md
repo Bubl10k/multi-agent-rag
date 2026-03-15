@@ -1,12 +1,12 @@
 # Multi-Agent RAG System
 
-Stack:
-- Python
-- FastAPI
-- LangGraph
-- LangChain
-- Next.js
-- PostgreSQL + pgvector
+![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=flat&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=flat&logo=langchain&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat&logo=langchain&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
+![pgvector](https://img.shields.io/badge/pgvector-4169E1?style=flat&logo=postgresql&logoColor=white)
 
 
 ## Description
@@ -43,7 +43,7 @@ The system is accessible via a CLI tool and a web interface.
 1. LangGraph graph constructor — build and modify agent pipelines via the web UI. *(Backlog)*
 
 
-## Usage of this application
+## Usage
 
 ### 1. Set up an agent
 - On first login, a set of pre-built agents is available (e.g., Programming, Invoice).
