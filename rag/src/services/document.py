@@ -3,7 +3,7 @@ import logging
 from fastapi import HTTPException, UploadFile
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from rag.src.api.schemas.documents import UploadDocumentResponse
+from rag.src.api.schemas.documents import DocumentSearchResult, SearchDocumentsResponse, UploadDocumentResponse
 from rag.src.db.vector_store import VectorStore
 from rag.src.utils.parsers import SUPPORTED_CONTENT_TYPES, extract_text
 
@@ -38,5 +38,21 @@ class DocumentService:
         return UploadDocumentResponse(collection=collection_name, chunks_stored=len(ids))
 
 
-def get_document_service() -> DocumentService:
-    return DocumentService()
+    @staticmethod
+    async def search_in_store(query: str, collection_name: str, k: int = 4) -> SearchDocumentsResponse:
+        logger.info("Searching in collection '%s' with query='%s', k=%d", collection_name, query, k)
+
+        store = VectorStore(collection_name=collection_name)
+        results = store.search_with_score(query, k=k)
+
+        return SearchDocumentsResponse(
+            collection=collection_name,
+            query=query,
+            results=[
+                DocumentSearchResult(content=doc.page_content, metadata=doc.metadata, score=score)
+                for doc, score in results
+            ],
+        )
+
+
+document_service = DocumentService()
