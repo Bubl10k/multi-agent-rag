@@ -18,6 +18,8 @@ dependencies = [
     "langchain-text-splitters>=1.1.1",
     "pypdf>=6.9.0",
     "python-docx>=1.2.0",
+    "fastapi-users[sqlalchemy]>=15.0.4",
+    "black>=26.3.1",
 ]
 
 [tool.ruff]
@@ -25,7 +27,7 @@ line-length = 120
 target-version = "py312"
 indent-width = 4
 lint.ignore = [
-    "E501", "B904", "N806", "C901", "C417", "N817", "C414", "F403", "N801", "N818", "RUF005", "RUF012", "RUF015"
+    "E501", "B904", "B008", "N806", "C901", "C417", "N817", "C414", "F403", "N801", "N818", "RUF005", "RUF012", "RUF015"
 ]
 lint.exclude = [
     'venv', '.git',
@@ -47,3 +49,8 @@ lint.select = [
     "PIE", # flake8-pie
     "PT", # flake-pytest-style
 ]
+
+[tool.black]
+line-length = 120
+target-version = ['py313']
+include = '.pyi?$'
