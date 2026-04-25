@@ -4,6 +4,12 @@ from abc import ABC, abstractmethod
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rag.src.db import async_session
+from rag.src.repositories.agent import AgentRepository
+from rag.src.repositories.collection import CollectionRepository
+from rag.src.repositories.conversation import ConversationRepository
+from rag.src.repositories.llm import LLMRepository
+from rag.src.repositories.message import MessageRepository
+from rag.src.repositories.refresh_token import RefreshTokenRepository
 
 
 class AbstractUnitOfWork(ABC):
@@ -30,6 +36,12 @@ class UnitOfWork(AbstractUnitOfWork):
         self.session = self.session_maker()
 
         # List of all repositories:
+        self.agent_repository = AgentRepository(self.session)
+        self.collection_repository = CollectionRepository(self.session)
+        self.llm_repository = LLMRepository(self.session)
+        self.conversation_repository = ConversationRepository(self.session)
+        self.message_repository = MessageRepository(self.session)
+        self.refresh_token_repository = RefreshTokenRepository(self.session)
 
         return self
 

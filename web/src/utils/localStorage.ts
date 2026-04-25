@@ -22,5 +22,17 @@ export const localStorageService = {
   setSidebarCollapsed: (value: boolean) => setItemToStorage('sidebarCollapsed', value),
   getSidebarCollapsed: () => getItemFromStorage('sidebarCollapsed'),
 
+  setAuthToken: (token: string) => setItemToStorage('auth_token', token),
+  getAuthToken: (): string | null => getItemFromStorage('auth_token'),
+  removeAuthToken: () => localStorage.removeItem('auth_token'),
+
+  setRefreshToken: (token: string) => setItemToStorage('refresh_token', token),
+  getRefreshToken: (): string | null => getItemFromStorage('refresh_token'),
+  removeRefreshToken: () => localStorage.removeItem('refresh_token'),
+
+  setAuthUser: (user: object) => setItemToStorage('auth_user', user),
+  getAuthUser: <T>(): T | null => getItemFromStorage('auth_user'),
+  removeAuthUser: () => localStorage.removeItem('auth_user'),
+
   clear: () => localStorage.clear(),
 };

@@ -9,6 +9,7 @@ export type Agent = {
 export enum MessageRole {
   User = 'user',
   Assistant = 'assistant',
+  Tool = 'tool',
 }
 
 export type Message = {

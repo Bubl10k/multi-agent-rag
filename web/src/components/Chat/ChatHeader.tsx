@@ -1,12 +1,11 @@
 import { Box, Typography } from '@mui/material';
-import type { Agent } from '@/types/chat';
-import ChatAvatar from '@/components/Chat/ChatAvatar.tsx';
+import ChatAvatar from '@/components/Chat/ChatAvatar';
 
 type Props = {
-  agent: Agent;
+  agentName?: string;
 };
 
-const ChatHeader = ({ agent }: Props) => (
+const ChatHeader = ({ agentName }: Props) => (
   <Box
     sx={{
       px: 3,
@@ -20,9 +19,9 @@ const ChatHeader = ({ agent }: Props) => (
       flexShrink: 0,
     }}
   >
-    <ChatAvatar icon={agent.Icon} />
+    <ChatAvatar variant="agent" />
     <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-      {agent.label}
+      {agentName ?? '…'}
     </Typography>
   </Box>
 );

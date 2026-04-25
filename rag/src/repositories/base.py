@@ -29,17 +29,22 @@ class BaseRepository(Generic[ModelType]):
         return db_row
 
     async def get_many(
-            self,
-            skip: int = 1,
-            limit: int = 10,
-            options: list | None = None,
-            search_query: str | None = None,
-            search_fields: list | None = None,
-            order_by: list | None = None,
-            **params,
+        self,
+        skip: int = 1,
+        limit: int = 10,
+        options: list | None = None,
+        search_query: str | None = None,
+        search_fields: list | None = None,
+        order_by: list | None = None,
+        **params,
     ) -> list[ModelType]:
         offset = (skip - 1) * limit
-        query = select(self.model).filter_by(**params).offset(offset).limit(limit)
+        scalar_params = {k: v for k, v in params.items() if not isinstance(v, list)}
+        list_params = {k: v for k, v in params.items() if isinstance(v, list)}
+        query = select(self.model).filter_by(**scalar_params)
+        for field, values in list_params.items():
+            query = query.where(getattr(self.model, field).in_(values))
+        query = query.offset(offset).limit(limit)
         if options:
             query = query.options(*options)
 
@@ -54,14 +59,14 @@ class BaseRepository(Generic[ModelType]):
         return db_rows
 
     async def get_many_paginated(
-            self,
-            skip: int = 0,
-            limit: int = 10,
-            search_query: str | None = None,
-            search_fields: list | None = None,
-            options: list | None = None,
-            order_by: list | None = None,
-            **params,
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        search_query: str | None = None,
+        search_fields: list | None = None,
+        options: list | None = None,
+        order_by: list | None = None,
+        **params,
     ) -> dict:
         count_query = select(func.count()).select_from(self.model).filter_by(**params)
 
@@ -73,9 +78,7 @@ class BaseRepository(Generic[ModelType]):
 
         if search_query and search_fields:
             query = await self._apply_search(query, search_query, search_fields)
-            count_query = await self._apply_search(
-                count_query, search_query, search_fields
-            )
+            count_query = await self._apply_search(count_query, search_query, search_fields)
 
         if order_by:
             query = query.order_by(*order_by)
@@ -91,21 +94,14 @@ class BaseRepository(Generic[ModelType]):
         }
 
     async def update_one(self, model_id: str, data: dict) -> ModelType:
-        query = (
-            update(self.model)
-            .where(self.model.id == model_id)
-            .values(**data)
-            .returning(self.model)
-        )
+        query = update(self.model).where(self.model.id == model_id).values(**data).returning(self.model)
         res = await self.session.execute(query)
         res.updated_at = datetime.now()
         await self.session.commit()
         return res.scalar_one()
 
     async def delete_one(self, model_id: str) -> ModelType:
-        query = (
-            delete(self.model).where(self.model.id == model_id).returning(self.model)
-        )
+        query = delete(self.model).where(self.model.id == model_id).returning(self.model)
         res = await self.session.execute(query)
         await self.session.commit()
         return res.scalar_one()
@@ -123,12 +119,5 @@ class BaseRepository(Generic[ModelType]):
     async def _apply_search(query, search_query: str, search_fields: list):
         if search_query and search_fields:
             search_pattern = f"%{search_query}%"
-            query = query.where(
-                or_(
-                    *(
-                        cast(field, String).ilike(search_pattern)
-                        for field in search_fields
-                    )
-                )
-            ).distinct()
+            query = query.where(or_(*(cast(field, String).ilike(search_pattern) for field in search_fields))).distinct()
         return query
