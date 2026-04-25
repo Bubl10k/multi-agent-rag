@@ -1,42 +1,67 @@
-import { useEffect, useRef, useState } from 'react';
-import { Box, Divider } from '@mui/material';
-import { MOCK_AGENTS } from '@/mocks/agents';
-import { MOCK_MESSAGES } from '@/mocks/messages';
-import { type Message, MessageRole } from '@/types/chat';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router';
+import { Box, Divider, Typography } from '@mui/material';
+import { MessageSquare } from 'lucide-react';
+
+import { MessageRole, type Message } from '@/types/chat';
+import { useAgentChat } from '@/hooks/useAgentChat';
+import { useGetAgentQuery } from '@/api/endpoints/agent';
+import { useGetConversationQuery } from '@/api/endpoints/conversation';
 import ChatHeader from '@/components/Chat/ChatHeader';
 import ChatMessage from '@/components/Chat/ChatMessage';
 import ChatInput from '@/components/Chat/ChatInput';
 
-const MOCK_AGENT = MOCK_AGENTS[0];
-
 const ChatPage = () => {
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const { agentId } = useParams<{ agentId: string }>();
+  const [searchParams] = useSearchParams();
+  const conversationId = searchParams.get('conversationId') ?? undefined;
+
+  const { data: agent } = useGetAgentQuery(agentId!, { skip: !agentId });
+  const { data: existingConversation } = useGetConversationQuery(
+    conversationId!,
+    {
+      skip: !conversationId,
+    },
+  );
+
+  const initialMessages = useMemo<Message[] | undefined>(() => {
+    if (!existingConversation) return undefined;
+    return existingConversation.messages.map(m => ({
+      id: m.id,
+      role: m.role as MessageRole,
+      content: m.content,
+    }));
+  }, [existingConversation]);
+
+  const { messages, streamingContent, isStreaming, sendMessage } = useAgentChat(
+    {
+      agentId: agentId ?? '',
+      initialConversationId: conversationId,
+      initialMessages,
+    },
+  );
+
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, streamingContent]);
 
   const handleSend = () => {
-    const trimmed = input.trim();
-    if (!trimmed) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: MessageRole.User,
-      content: trimmed,
-    };
-    const mockReply: Message = {
-      id: (Date.now() + 1).toString(),
-      role: MessageRole.Assistant,
-      content:
-        'I received your message. This is a mocked response — real API integration coming soon.',
-    };
-
-    setMessages(prev => [...prev, userMessage, mockReply]);
+    const text = input.trim();
+    if (!text || isStreaming) return;
+    sendMessage(text);
     setInput('');
   };
+
+  const streamingMessage: Message | null = streamingContent
+    ? {
+        id: 'streaming',
+        role: MessageRole.Assistant,
+        content: streamingContent,
+      }
+    : null;
 
   return (
     <Box
@@ -47,34 +72,54 @@ const ChatPage = () => {
         bgcolor: 'background.default',
       }}
     >
-      <ChatHeader agent={MOCK_AGENT} />
+      <ChatHeader agentName={agent?.name} />
 
       <Box
         sx={{
           flex: 1,
           overflowY: 'auto',
-          px: { xs: 2, sm: 4, md: 8, lg: 16 },
+          px: { xs: 2, sm: 4, md: 8, lg: 18 },
           py: 3,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <Box
-          sx={{
-            maxWidth: 760,
-            mx: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 3,
-          }}
-        >
-          {messages.map(message => (
-            <ChatMessage
-              key={message.id}
-              message={message}
-              agentIcon={MOCK_AGENT.Icon}
-            />
-          ))}
-          <div ref={messagesEndRef} />
-        </Box>
+        {messages.length === 0 && !streamingMessage ? (
+          <Box
+            sx={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              color: 'text.disabled',
+            }}
+          >
+            <MessageSquare size={40} strokeWidth={1.2} />
+            <Typography variant="body2">
+              {agent
+                ? `Start a conversation with ${agent.name}`
+                : 'Start a conversation'}
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              maxWidth: 900,
+              mx: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3,
+            }}
+          >
+            {messages.map(message => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+            {streamingMessage && <ChatMessage message={streamingMessage} />}
+            <div ref={messagesEndRef} />
+          </Box>
+        )}
       </Box>
 
       <Divider />
@@ -83,7 +128,8 @@ const ChatPage = () => {
         value={input}
         onChange={setInput}
         onSend={handleSend}
-        placeholder={`Message ${MOCK_AGENT.label}...`}
+        placeholder={agent ? `Message ${agent.name}…` : 'Message…'}
+        disabled={isStreaming}
       />
     </Box>
   );

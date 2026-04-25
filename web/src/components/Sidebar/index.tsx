@@ -6,28 +6,42 @@ import {
   IconButton,
   List,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Tooltip,
   Typography,
 } from '@mui/material';
 import type { LucideIcon } from 'lucide-react';
 import {
+  Bot,
   CirclePlus,
   LayoutDashboard,
+  LogOut,
   MessageSquare,
   Moon,
+  MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
   Sun,
+  Trash2,
   UserCog,
 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import { useThemeMode } from '@/theme/ThemeContext';
 import { localStorageService } from '@/utils/localStorage';
-import { MOCK_AGENTS } from '@/mocks/agents';
-import { MOCK_SESSIONS } from '@/mocks/sessions';
-import { MOCK_USER } from '@/mocks/user';
-import type { Agent, Session } from '@/types/chat.tsx';
+import { useAppSelector } from '@/store';
+import { useActions } from '@/hooks/useActions';
+import { chatPath, conversationChatPath, ROUTES } from '@/router/router';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { useGetAgentsQuery } from '@/api/endpoints/agent';
+import { useDeleteConversationMutation, useGetConversationsQuery } from '@/api/endpoints/conversation';
+import type { AgentRead } from '@/api/types/agent';
+import type { ConversationRead } from '@/api/types/conversation';
+import { GROUP_ORDER, getConversationPreview, groupConversationsByDate } from '@/utils/conversation';
+import SectionLabel from './SectionLabel';
 
 const SIDEBAR_WIDTH = 260;
 const SIDEBAR_WIDTH_COLLAPSED = 56;
@@ -40,12 +54,6 @@ const ACTION_BUTTONS: ActionButton[] = [
   { label: 'Dashboard', Icon: LayoutDashboard },
 ];
 
-const groupSessions = (sessions: Session[]) =>
-  sessions.reduce<Record<string, Session[]>>((acc, session) => {
-    (acc[session.group] ??= []).push(session);
-    return acc;
-  }, {});
-
 const ICON_BTN_SX = {
   borderRadius: 2,
   width: 38,
@@ -53,44 +61,59 @@ const ICON_BTN_SX = {
   flexShrink: 0,
 } as const;
 
-const SectionLabel = ({ children }: { children: string }) => (
-  <Typography
-    variant="caption"
-    sx={{
-      display: 'block',
-      px: 1.5,
-      py: 0.75,
-      color: 'text.disabled',
-      fontWeight: 600,
-      textTransform: 'uppercase',
-      letterSpacing: '0.06em',
-      fontSize: '0.65rem',
-      whiteSpace: 'nowrap',
-    }}
-  >
-    {children}
-  </Typography>
-);
-
 const Sidebar = () => {
-  const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
-  const [activeSessionId, setActiveSessionId] = useState<string>('1');
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorageService.getSidebarCollapsed() ?? false,
   );
   const { mode, toggleTheme } = useThemeMode();
+  const { logout } = useActions();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const user = useAppSelector(state => state.auth.user);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
-  const grouped = groupSessions(sessions);
+  const { data: agents = [], isLoading: agentsLoading } = useGetAgentsQuery();
+  const { data: conversations = [], isLoading: conversationsLoading } =
+    useGetConversationsQuery();
+  const [deleteConversation] = useDeleteConversationMutation();
 
-  const handleAgentClick = (agent: Agent) => {
-    const newSession: Session = {
-      id: Date.now().toString(),
-      title: `New ${agent.label} conversation`,
-      group: 'Today',
-      agentId: agent.id,
-    };
-    setSessions(prev => [newSession, ...prev]);
-    setActiveSessionId(newSession.id);
+  const activeConversationId = searchParams.get('conversationId');
+  const [menuState, setMenuState] = useState<{ anchor: HTMLElement; conv: ConversationRead } | null>(null);
+  const [deletingConversation, setDeletingConversation] = useState<ConversationRead | null>(null);
+
+  const handleLogoutConfirm = () => {
+    logout();
+    navigate(ROUTES.LOGIN);
+  };
+
+  const handleAgentClick = (agent: AgentRead) => {
+    navigate(chatPath(agent.id));
+  };
+
+  const handleConversationClick = (conversation: ConversationRead) => {
+    navigate(conversationChatPath(conversation.agent_id, conversation.id));
+  };
+
+  const handleMenuOpen = (e: React.MouseEvent<HTMLButtonElement>, conv: ConversationRead) => {
+    e.stopPropagation();
+    setMenuState({ anchor: e.currentTarget, conv });
+  };
+
+  const handleMenuClose = () => setMenuState(null);
+
+  const handleDeleteMenuClick = () => {
+    if (!menuState) return;
+    setDeletingConversation(menuState.conv);
+    handleMenuClose();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingConversation) return;
+    await deleteConversation(deletingConversation.id);
+    if (activeConversationId === deletingConversation.id) {
+      navigate(chatPath(deletingConversation.agent_id));
+    }
+    setDeletingConversation(null);
   };
 
   const handleCollapseToggle = () => {
@@ -98,6 +121,8 @@ const Sidebar = () => {
     setCollapsed(next);
     localStorageService.setSidebarCollapsed(next);
   };
+
+  const grouped = groupConversationsByDate(conversations);
 
   return (
     <Box
@@ -152,40 +177,30 @@ const Sidebar = () => {
         {/* Agents */}
         {!collapsed && <SectionLabel>Agents</SectionLabel>}
         <List disablePadding sx={{ mb: 1 }}>
-          {MOCK_AGENTS.map(agent =>
+          {agentsLoading ? (
+            <Box sx={{ px: 1.5, py: 1 }}>
+              <Typography variant="caption" color="text.disabled">Loading…</Typography>
+            </Box>
+          ) : agents.map(agent =>
             collapsed ? (
-              <Tooltip key={agent.id} title={agent.label} placement="right">
+              <Tooltip key={agent.id} title={agent.name} placement="right">
                 <ListItemButton
                   onClick={() => handleAgentClick(agent)}
-                  sx={{
-                    borderRadius: 1.5,
-                    mb: 0.25,
-                    py: 0.75,
-                    justifyContent: 'center',
-                    px: 0,
-                  }}
+                  sx={{ borderRadius: 1.5, mb: 0.25, py: 0.75, justifyContent: 'center', px: 0 }}
                 >
-                  <agent.Icon size={16} />
+                  <Bot size={16} />
                 </ListItemButton>
               </Tooltip>
             ) : (
               <ListItemButton
                 key={agent.id}
                 onClick={() => handleAgentClick(agent)}
-                sx={{
-                  borderRadius: 1.5,
-                  mb: 0.25,
-                  py: 0.75,
-                  px: 1.5,
-                  gap: 1.5,
-                }}
+                sx={{ borderRadius: 1.5, mb: 0.25, py: 0.75, px: 1.5, gap: 1.5 }}
               >
-                <agent.Icon size={16} style={{ flexShrink: 0, opacity: 0.6 }} />
+                <Bot size={16} style={{ flexShrink: 0, opacity: 0.6 }} />
                 <ListItemText
-                  primary={agent.label}
-                  slotProps={{
-                    primary: { style: { fontSize: '0.875rem' }, noWrap: true },
-                  }}
+                  primary={agent.name}
+                  slotProps={{ primary: { style: { fontSize: '0.875rem' }, noWrap: true } }}
                 />
               </ListItemButton>
             ),
@@ -194,51 +209,65 @@ const Sidebar = () => {
 
         <Divider sx={{ mx: collapsed ? 0 : 0.5, mb: 1 }} />
 
-        {/* Sessions history */}
+        {/* Conversation history */}
         {!collapsed && <SectionLabel>Conversation History</SectionLabel>}
-        {collapsed ? (
-          <List
-            disablePadding
-            sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}
-          >
-            {sessions.map(session => (
-              <Tooltip key={session.id} title={session.title} placement="right">
+        {conversationsLoading ? (
+          <Box sx={{ px: 1.5, py: 1 }}>
+            <Typography variant="caption" color="text.disabled">Loading…</Typography>
+          </Box>
+        ) : collapsed ? (
+          <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            {conversations.map(conv => (
+              <Tooltip key={conv.id} title={getConversationPreview(conv)} placement="right">
                 <ListItemButton
-                  selected={activeSessionId === session.id}
-                  onClick={() => setActiveSessionId(session.id)}
-                  sx={{
-                    borderRadius: 1.5,
-                    justifyContent: 'center',
-                    py: 0.75,
-                    px: 0,
-                  }}
+                  selected={activeConversationId === conv.id}
+                  onClick={() => handleConversationClick(conv)}
+                  sx={{ borderRadius: 1.5, justifyContent: 'center', py: 0.75, px: 0 }}
                 >
                   <MessageSquare size={16} />
                 </ListItemButton>
               </Tooltip>
             ))}
           </List>
+        ) : conversations.length === 0 ? (
+          !collapsed && (
+            <Box sx={{ px: 1.5, py: 1 }}>
+              <Typography variant="caption" color="text.disabled">
+                No conversations yet. Pick an agent above to start chatting.
+              </Typography>
+            </Box>
+          )
         ) : (
-          Object.entries(grouped).map(([group, groupedSessions]) => (
+          GROUP_ORDER.filter(g => grouped[g]?.length).map(group => (
             <Box key={group} sx={{ mb: 1 }}>
               <SectionLabel>{group}</SectionLabel>
               <List disablePadding>
-                {groupedSessions.map(session => (
+                {grouped[group].map(conv => (
                   <ListItemButton
-                    key={session.id}
-                    selected={activeSessionId === session.id}
-                    onClick={() => setActiveSessionId(session.id)}
-                    sx={{ borderRadius: 1.5, mb: 0.25, py: 0.75, px: 1.5 }}
+                    key={conv.id}
+                    selected={activeConversationId === conv.id}
+                    onClick={() => handleConversationClick(conv)}
+                    sx={{
+                      borderRadius: 1.5,
+                      mb: 0.25,
+                      py: 0.75,
+                      px: 1.5,
+                      '& .conv-menu-btn': { opacity: 0 },
+                      '&:hover .conv-menu-btn': { opacity: 1 },
+                    }}
                   >
                     <ListItemText
-                      primary={session.title}
-                      slotProps={{
-                        primary: {
-                          style: { fontSize: '0.875rem' },
-                          noWrap: true,
-                        },
-                      }}
+                      primary={getConversationPreview(conv)}
+                      slotProps={{ primary: { style: { fontSize: '0.875rem' }, noWrap: true } }}
                     />
+                    <IconButton
+                      className="conv-menu-btn"
+                      size="small"
+                      onClick={e => handleMenuOpen(e, conv)}
+                      sx={{ flexShrink: 0, p: 0.5, color: 'text.secondary' }}
+                    >
+                      <MoreHorizontal size={14} />
+                    </IconButton>
                   </ListItemButton>
                 ))}
               </List>
@@ -304,7 +333,7 @@ const Sidebar = () => {
 
       <Divider />
 
-      {/* User + Theme toggle */}
+      {/* User + Theme toggle + Logout */}
       <Box
         sx={{
           m: 1,
@@ -315,59 +344,79 @@ const Sidebar = () => {
           justifyContent: collapsed ? 'center' : 'space-between',
           flexDirection: collapsed ? 'column' : 'row',
           gap: collapsed ? 1 : 0,
-          cursor: 'pointer',
           borderRadius: 2,
-          '&:hover': { bgcolor: 'action.hover' },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Tooltip
-            title={collapsed ? (MOCK_USER ?? 'Guest') : ''}
-            placement="right"
-          >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
+          <Tooltip title={collapsed ? (user?.email ?? 'Guest') : ''} placement="right">
             <Avatar
               sx={{
                 width: 32,
                 height: 32,
-                bgcolor: MOCK_USER ? 'primary.main' : 'action.selected',
+                bgcolor: user ? 'primary.main' : 'action.selected',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                color: MOCK_USER ? 'primary.contrastText' : 'text.secondary',
+                color: user ? 'primary.contrastText' : 'text.secondary',
                 flexShrink: 0,
               }}
             >
-              {MOCK_USER ? MOCK_USER[0].toUpperCase() : 'G'}
+              {user ? user.email[0].toUpperCase() : 'G'}
             </Avatar>
           </Tooltip>
           {!collapsed && (
-            <Typography
-              sx={{
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: 'text.primary',
-              }}
-            >
-              {MOCK_USER ?? 'Guest'}
+            <Typography noWrap sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.primary' }}>
+              {user?.email ?? 'Guest'}
             </Typography>
           )}
         </Box>
 
-        <Tooltip
-          title={mode === 'light' ? 'Dark mode' : 'Light mode'}
-          placement="right"
-        >
-          <IconButton
-            onClick={e => {
-              e.stopPropagation();
-              toggleTheme();
-            }}
-            size="small"
-            sx={{ flexShrink: 0 }}
-          >
-            {mode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+          <Tooltip title={mode === 'light' ? 'Dark mode' : 'Light mode'} placement="right">
+            <IconButton onClick={toggleTheme} size="small">
+              {mode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Sign out" placement="right">
+            <IconButton onClick={() => setLogoutDialogOpen(true)} size="small">
+              <LogOut size={16} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
+
+      <Menu
+        anchorEl={menuState?.anchor}
+        open={!!menuState}
+        onClose={handleMenuClose}
+        slotProps={{ paper: { sx: { minWidth: 160 } } }}
+      >
+        <MenuItem onClick={handleDeleteMenuClick} sx={{ color: 'error.main', gap: 1.5 }}>
+          <ListItemIcon sx={{ color: 'inherit', minWidth: 'unset' }}>
+            <Trash2 size={14} />
+          </ListItemIcon>
+          Delete
+        </MenuItem>
+      </Menu>
+
+      <ConfirmDialog
+        open={logoutDialogOpen}
+        title="Sign out"
+        description="Are you sure you want to sign out?"
+        confirmLabel="Sign out"
+        cancelLabel="Cancel"
+        onConfirm={handleLogoutConfirm}
+        onCancel={() => setLogoutDialogOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={!!deletingConversation}
+        title="Delete conversation"
+        description="This conversation and all its messages will be permanently deleted."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeletingConversation(null)}
+      />
     </Box>
   );
 };

@@ -1,15 +1,14 @@
-import MuiMarkdown from 'mui-markdown';
 import { Box, Typography } from '@mui/material';
-import type { LucideIcon } from 'lucide-react';
 import { MessageRole, type Message } from '@/types/chat';
-import ChatAvatar from '@/components/Chat/ChatAvatar.tsx';
+import ChatAvatar from '@/components/Chat/ChatAvatar';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 type Props = {
   message: Message;
-  agentIcon: LucideIcon;
+  agentName?: string;
 };
 
-const ChatMessage = ({ message, agentIcon }: Props) => {
+const ChatMessage = ({ message }: Props) => {
   const isUser = message.role === MessageRole.User;
 
   return (
@@ -21,13 +20,13 @@ const ChatMessage = ({ message, agentIcon }: Props) => {
         alignItems: 'flex-start',
       }}
     >
-      {isUser ? <ChatAvatar /> : <ChatAvatar icon={agentIcon} />}
+      <ChatAvatar variant={isUser ? 'user' : 'agent'} />
 
       <Box
         sx={{
           maxWidth: '80%',
           px: 1.5,
-          py: 1,
+          py: 2,
           borderRadius: isUser ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
           bgcolor: isUser ? 'primary.main' : 'background.paper',
           border: isUser ? 'none' : '1px solid',
@@ -35,11 +34,16 @@ const ChatMessage = ({ message, agentIcon }: Props) => {
         }}
       >
         {isUser ? (
-          <Typography sx={{ fontSize: '0.9rem', lineHeight: 1.65, color: 'primary.contrastText' }}>
+          <Typography
+            sx={{
+              lineHeight: 1.65,
+              color: 'primary.contrastText',
+            }}
+          >
             {message.content}
           </Typography>
         ) : (
-          <MuiMarkdown>{message.content}</MuiMarkdown>
+          <MarkdownRenderer>{message.content}</MarkdownRenderer>
         )}
       </Box>
     </Box>

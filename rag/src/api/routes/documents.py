@@ -14,7 +14,7 @@ async def upload_document_to_vector_store(
     file: UploadFile,
     collection_name: str,
     document_service: DocumentServiceDep,
-    user: UserDep,
+    _: UserDep,
 ):
     return await document_service.upload_file_to_store(file=file, collection_name=collection_name)
 
@@ -25,6 +25,6 @@ async def search_vector_store(
     query: str,
     k: int = 4,
     document_service: DocumentServiceDep = ...,
-    user: UserDep = ...,
+    _: UserDep = ...,
 ):
     return await document_service.search_in_store(query=query, collection_name=collection_name, k=k)

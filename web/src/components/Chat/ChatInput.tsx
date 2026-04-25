@@ -7,9 +7,16 @@ type Props = {
   onChange: (value: string) => void;
   onSend: () => void;
   placeholder?: string;
+  disabled?: boolean;
 };
 
-const ChatInput = ({ value, onChange, onSend, placeholder = 'Message...' }: Props) => {
+const ChatInput = ({
+  value,
+  onChange,
+  onSend,
+  placeholder = 'Message...',
+  disabled = false,
+}: Props) => {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -17,7 +24,7 @@ const ChatInput = ({ value, onChange, onSend, placeholder = 'Message...' }: Prop
     }
   };
 
-  const canSend = !!value.trim();
+  const canSend = !!value.trim() && !disabled;
 
   return (
     <Box
@@ -52,6 +59,7 @@ const ChatInput = ({ value, onChange, onSend, placeholder = 'Message...' }: Prop
           value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={disabled}
           variant="standard"
           slotProps={{ input: { disableUnderline: true } }}
           sx={{ fontSize: '0.9rem' }}
@@ -80,7 +88,12 @@ const ChatInput = ({ value, onChange, onSend, placeholder = 'Message...' }: Prop
       </Box>
       <Typography
         variant="caption"
-        sx={{ display: 'block', textAlign: 'center', mt: 1, color: 'text.disabled' }}
+        sx={{
+          display: 'block',
+          textAlign: 'center',
+          mt: 1,
+          color: 'text.disabled',
+        }}
       >
         Press Enter to send · Shift+Enter for new line
       </Typography>
