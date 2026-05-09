@@ -1,3 +1,5 @@
+import uuid
+
 from rag.src.api.schemas.llm import LLMCreate, LLMRead, LLMUpdate
 from rag.src.utils.crypto import decrypt, encrypt
 from rag.src.utils.unit_of_work import UnitOfWork
@@ -5,10 +7,11 @@ from rag.src.utils.unit_of_work import UnitOfWork
 
 class LLMService:
     @staticmethod
-    async def create(uow: UnitOfWork, data: LLMCreate) -> LLMRead:
+    async def create(uow: UnitOfWork, data: LLMCreate, user_id: uuid.UUID) -> LLMRead:
         async with uow:
             payload = data.model_dump()
             payload["api_key"] = encrypt(payload["api_key"])
+            payload["user_id"] = user_id
             llm = await uow.llm_repository.create_one(payload)
             return LLMRead.model_validate(llm)
 

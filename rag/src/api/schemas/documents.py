@@ -16,3 +16,8 @@ class SearchDocumentsResponse(BaseModel):
     collection: str
     query: str
     results: list[DocumentSearchResult]
+
+
+class CollectionFilesResponse(BaseModel):
+    collection: str
+    files: list[str]

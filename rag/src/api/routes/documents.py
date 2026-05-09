@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile
 
 from rag.src.api.dependencies import DocumentServiceDep, UserDep
 from rag.src.api.schemas.documents import (
+    CollectionFilesResponse,
     SearchDocumentsResponse,
     UploadDocumentResponse,
 )
@@ -19,12 +20,21 @@ async def upload_document_to_vector_store(
     return await document_service.upload_file_to_store(file=file, collection_name=collection_name)
 
 
+@router.get("/files", response_model=CollectionFilesResponse)
+async def get_collection_files(
+    collection_name: str,
+    document_service: DocumentServiceDep,
+    _: UserDep,
+):
+    return document_service.get_collection_files(collection_name=collection_name)
+
+
 @router.get("/search", response_model=SearchDocumentsResponse)
 async def search_vector_store(
     collection_name: str,
     query: str,
+    document_service: DocumentServiceDep,
+    _: UserDep,
     k: int = 4,
-    document_service: DocumentServiceDep = ...,
-    _: UserDep = ...,
 ):
     return await document_service.search_in_store(query=query, collection_name=collection_name, k=k)

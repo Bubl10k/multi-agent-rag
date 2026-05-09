@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
-import { useAppSelector } from '@/store';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { baseApi } from '@/api/baseApi';
 import { MessageRole, type Message } from '@/types/chat';
 import type {
   UseAgentChatOptions,
@@ -15,6 +16,7 @@ export const useAgentChat = ({
   initialMessages,
 }: UseAgentChatOptions): UseAgentChatReturn => {
   const token = useAppSelector(state => state.auth.token);
+  const dispatch = useAppDispatch();
 
   const [messages, setMessages] = useState<Message[]>(initialMessages ?? []);
   const [streamingContent, setStreamingContent] = useState('');
@@ -24,7 +26,9 @@ export const useAgentChat = ({
   );
 
   const socketRef = useRef<AgentChatSocket | null>(null);
-  const conversationIdRef = useRef<string | null>(initialConversationId ?? null);
+  const conversationIdRef = useRef<string | null>(
+    initialConversationId ?? null,
+  );
   const streamingBufferRef = useRef('');
   const seededRef = useRef(false);
 
@@ -58,8 +62,14 @@ export const useAgentChat = ({
       onDone: ({ conversation_id }) => {
         const content = streamingBufferRef.current;
         streamingBufferRef.current = '';
+        const isNewConversation = !conversationIdRef.current;
         conversationIdRef.current = conversation_id;
         setConversationId(conversation_id);
+        if (isNewConversation) {
+          dispatch(
+            baseApi.util.invalidateTags([{ type: 'Conversation', id: 'LIST' }]),
+          );
+        }
         setStreamingContent('');
         if (content) {
           setMessages(msgs => [
@@ -82,7 +92,7 @@ export const useAgentChat = ({
       socket.close();
       socketRef.current = null;
     };
-  }, [agentId, token]);
+  }, [agentId, token, dispatch]);
 
   const sendMessage = useCallback((text: string) => {
     const socket = socketRef.current;

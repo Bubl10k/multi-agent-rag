@@ -8,8 +8,8 @@ router = APIRouter(prefix="/collections", tags=["collections"])
 
 
 @router.post("", response_model=CollectionRead, status_code=status.HTTP_201_CREATED)
-async def create_collection(data: CollectionCreate, uow: UnitOfWorkDep, _: UserDep):
-    return await CollectionService.create(uow, data)
+async def create_collection(data: CollectionCreate, uow: UnitOfWorkDep, user: UserDep):
+    return await CollectionService.create(uow, data, user.id)
 
 
 @router.get("", response_model=list[CollectionRead])

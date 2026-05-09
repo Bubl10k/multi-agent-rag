@@ -30,6 +30,30 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: ROUTES.AGENTS,
+            lazy: async () => {
+              const { default: Component } =
+                await import('@/pagecomponents/Agents');
+              return { Component };
+            },
+          },
+          {
+            path: ROUTES.LLM_MODELS,
+            lazy: async () => {
+              const { default: Component } =
+                await import('@/pagecomponents/LLMModels');
+              return { Component };
+            },
+          },
+          {
+            path: ROUTES.COLLECTIONS,
+            lazy: async () => {
+              const { default: Component } =
+                await import('@/pagecomponents/Collections');
+              return { Component };
+            },
+          },
+          {
             path: '*',
             lazy: async () => {
               const { default: Component } =

@@ -17,7 +17,6 @@ agent_collection = Table(
 )
 
 
-# TODO: add relationships with user
 class Agent(BaseModel):
     __tablename__ = "agent"
 
@@ -30,3 +29,6 @@ class Agent(BaseModel):
     llm: Mapped[LLM] = relationship("LLM", lazy="joined")
 
     collections: Mapped[list[Collection]] = relationship("Collection", secondary=agent_collection, lazy="selectin")
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    user: Mapped["User"] = relationship("User", lazy="selectin")  # noqa F821

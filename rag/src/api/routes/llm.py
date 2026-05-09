@@ -10,8 +10,8 @@ router = APIRouter(prefix="/llms", tags=["llms"])
 
 
 @router.post("", response_model=LLMRead, status_code=201)
-async def create_llm(data: LLMCreate, uow: UnitOfWorkDep, _: UserDep):
-    return await LLMService.create(uow, data)
+async def create_llm(data: LLMCreate, uow: UnitOfWorkDep, user: UserDep):
+    return await LLMService.create(uow, data, user.id)
 
 
 @router.get("", response_model=list[LLMRead])

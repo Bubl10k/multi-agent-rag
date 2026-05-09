@@ -13,11 +13,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import type { LucideIcon } from 'lucide-react';
 import {
   Bot,
-  CirclePlus,
-  LayoutDashboard,
   LogOut,
   MessageSquare,
   Moon,
@@ -26,7 +23,6 @@ import {
   PanelLeftOpen,
   Sun,
   Trash2,
-  UserCog,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 
@@ -42,17 +38,10 @@ import type { AgentRead } from '@/api/types/agent';
 import type { ConversationRead } from '@/api/types/conversation';
 import { GROUP_ORDER, getConversationPreview, groupConversationsByDate } from '@/utils/conversation';
 import SectionLabel from './SectionLabel';
+import { ACTION_BUTTONS } from './constants';
 
 const SIDEBAR_WIDTH = 260;
 const SIDEBAR_WIDTH_COLLAPSED = 56;
-
-type ActionButton = { label: string; Icon: LucideIcon };
-
-const ACTION_BUTTONS: ActionButton[] = [
-  { label: 'Add Agent', Icon: CirclePlus },
-  { label: 'Modify Agents', Icon: UserCog },
-  { label: 'Dashboard', Icon: LayoutDashboard },
-];
 
 const ICON_BTN_SX = {
   borderRadius: 2,
@@ -68,6 +57,7 @@ const Sidebar = () => {
   const { mode, toggleTheme } = useThemeMode();
   const { logout } = useActions();
   const navigate = useNavigate();
+
   const [searchParams] = useSearchParams();
   const user = useAppSelector(state => state.auth.user);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -289,10 +279,11 @@ const Sidebar = () => {
           alignItems: collapsed ? 'center' : 'stretch',
         }}
       >
-        {ACTION_BUTTONS.map(({ label, Icon }) =>
-          collapsed ? (
+        {ACTION_BUTTONS.map(({ label, Icon, path }) => {
+          const handleClick = path ? () => navigate(path) : undefined;
+          return collapsed ? (
             <Tooltip key={label} title={label} placement="right">
-              <IconButton size="small" sx={{ ...ICON_BTN_SX, border: 'none' }}>
+              <IconButton size="small" onClick={handleClick} sx={{ ...ICON_BTN_SX, border: 'none' }}>
                 <Icon size={16} />
               </IconButton>
             </Tooltip>
@@ -300,7 +291,7 @@ const Sidebar = () => {
             <Box
               key={label}
               component="button"
-              onClick={() => {}}
+              onClick={handleClick}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -327,8 +318,8 @@ const Sidebar = () => {
                 {label}
               </Typography>
             </Box>
-          ),
-        )}
+          );
+        })}
       </Box>
 
       <Divider />

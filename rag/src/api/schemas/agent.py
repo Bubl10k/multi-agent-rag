@@ -30,6 +30,7 @@ class AgentRead(BaseModel):
     prompt: str
     tool_calls: list
     is_active: bool
+    user_id: uuid.UUID
     llm: LLMRead
     collections: list[CollectionRead]
 

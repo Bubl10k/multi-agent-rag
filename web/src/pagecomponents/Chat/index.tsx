@@ -10,6 +10,7 @@ import { useGetConversationQuery } from '@/api/endpoints/conversation';
 import ChatHeader from '@/components/Chat/ChatHeader';
 import ChatMessage from '@/components/Chat/ChatMessage';
 import ChatInput from '@/components/Chat/ChatInput';
+import ThinkingBubble from '@/components/Chat/ThinkingBubble';
 
 const ChatPage = () => {
   const { agentId } = useParams<{ agentId: string }>();
@@ -116,7 +117,10 @@ const ChatPage = () => {
             {messages.map(message => (
               <ChatMessage key={message.id} message={message} />
             ))}
-            {streamingMessage && <ChatMessage message={streamingMessage} />}
+            {isStreaming && !streamingMessage && <ThinkingBubble />}
+            {streamingMessage && (
+              <ChatMessage message={streamingMessage} isTyping />
+            )}
             <div ref={messagesEndRef} />
           </Box>
         )}

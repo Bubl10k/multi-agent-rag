@@ -1,14 +1,21 @@
 import { Box, Typography } from '@mui/material';
+import { keyframes } from '@mui/system';
 import { MessageRole, type Message } from '@/types/chat';
 import ChatAvatar from '@/components/Chat/ChatAvatar';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
+const blink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+`;
+
 type Props = {
   message: Message;
   agentName?: string;
+  isTyping?: boolean;
 };
 
-const ChatMessage = ({ message }: Props) => {
+const ChatMessage = ({ message, isTyping }: Props) => {
   const isUser = message.role === MessageRole.User;
 
   return (
@@ -43,7 +50,21 @@ const ChatMessage = ({ message }: Props) => {
             {message.content}
           </Typography>
         ) : (
-          <MarkdownRenderer>{message.content}</MarkdownRenderer>
+          <>
+            <MarkdownRenderer>{message.content}</MarkdownRenderer>
+            {isTyping && (
+              <Box
+                sx={{
+                  width: 16,
+                  height: 2,
+                  borderRadius: 1,
+                  bgcolor: 'text.disabled',
+                  mt: 0.75,
+                  animation: `${blink} 1s step-end infinite`,
+                }}
+              />
+            )}
+          </>
         )}
       </Box>
     </Box>

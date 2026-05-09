@@ -22,5 +22,6 @@ class CollectionRead(BaseModel):
     name: str
     description: str | None
     embedding_model: str
+    user_id: uuid.UUID
 
     model_config = {"from_attributes": True}

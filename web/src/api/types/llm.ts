@@ -2,6 +2,7 @@ export type LLMRead = {
   id: string;
   model_name: string;
   is_active: boolean;
+  user_id: string;
 };
 
 export type LLMCreate = {

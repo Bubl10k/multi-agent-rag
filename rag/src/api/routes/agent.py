@@ -12,8 +12,8 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 
 
 @router.post("", response_model=AgentRead, status_code=status.HTTP_201_CREATED)
-async def create_agent(data: AgentCreate, uow: UnitOfWorkDep, _: UserDep):
-    return await AgentService.create(uow, data)
+async def create_agent(data: AgentCreate, uow: UnitOfWorkDep, user: UserDep):
+    return await AgentService.create(uow, data, user.id)
 
 
 @router.get("", response_model=list[AgentRead])
@@ -36,6 +36,7 @@ async def delete_agent(agent_id: uuid.UUID, uow: UnitOfWorkDep, _: UserDep):
     return await AgentService.delete(uow, agent_id)
 
 
+# TODO: add separate router for ws
 @router.websocket("/{agent_id}/chat")
 async def chat_with_agent(
     websocket: WebSocket,
@@ -43,4 +44,4 @@ async def chat_with_agent(
     uow: UnitOfWorkDep,
     user_id: uuid.UUID = Depends(ws_get_user_id),
 ):
-    await AgentStreamingService.handle_ws(websocket, uow, agent_id, user_id)
+    await AgentStreamingService().handle_ws(websocket, uow, agent_id, user_id)

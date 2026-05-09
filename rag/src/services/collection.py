@@ -1,12 +1,14 @@
+import uuid
+
 from rag.src.api.schemas.collection import CollectionCreate, CollectionRead, CollectionUpdate
 from rag.src.utils.unit_of_work import UnitOfWork
 
 
 class CollectionService:
     @staticmethod
-    async def create(uow: UnitOfWork, data: CollectionCreate) -> CollectionRead:
+    async def create(uow: UnitOfWork, data: CollectionCreate, user_id: uuid.UUID) -> CollectionRead:
         async with uow:
-            collection = await uow.collection_repository.create_one(data.model_dump())
+            collection = await uow.collection_repository.create_one({**data.model_dump(), "user_id": user_id})
             return CollectionRead.model_validate(collection)
 
     @staticmethod

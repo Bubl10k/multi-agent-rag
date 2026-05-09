@@ -19,5 +19,6 @@ class LLMRead(BaseModel):
     id: uuid.UUID
     model_name: str
     is_active: bool
+    user_id: uuid.UUID
 
     model_config = {"from_attributes": True}
