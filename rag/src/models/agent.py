@@ -4,6 +4,7 @@ from sqlalchemy import Boolean, Column, ForeignKey, String, Table, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from rag.src.agent.types import AgentType
 from rag.src.models.base import Base, BaseModel
 from rag.src.models.collection import Collection
 from rag.src.models.llm import LLM
@@ -22,7 +23,8 @@ class Agent(BaseModel):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
-    tool_calls: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    agent_type: Mapped[str] = mapped_column(String(50), nullable=False, default=AgentType.GENERAL)
+    agent_config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     llm_id: Mapped[UUID] = mapped_column(ForeignKey("llm.id"), nullable=False)

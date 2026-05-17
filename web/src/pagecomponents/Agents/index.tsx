@@ -15,12 +15,24 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Network, Pencil, Plus, Trash2 } from 'lucide-react';
 
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useDeleteAgentMutation, useGetAgentsQuery } from '@/api/endpoints/agent';
-import type { AgentRead } from '@/api/types/agent';
+import {
+  useDeleteAgentMutation,
+  useGetAgentsQuery,
+} from '@/api/endpoints/agent';
+import { AgentType, type AgentRead } from '@/api/types/agent';
+
+const AGENT_TYPE_LABELS: Record<AgentType, string> = {
+  [AgentType.GENERAL]: 'General',
+  [AgentType.PROGRAMMING]: 'Programming',
+  [AgentType.MATH]: 'Math',
+  [AgentType.RESEARCHER]: 'Researcher',
+  [AgentType.INVOICE]: 'Invoice',
+};
 import AgentFormDialog from './components/AgentFormDialog.tsx';
+import AgentGraphDialog from './components/AgentGraphDialog.tsx';
 
 const AgentsPage = () => {
   const { data: agents = [], isLoading } = useGetAgentsQuery();
@@ -29,6 +41,7 @@ const AgentsPage = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentRead | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<AgentRead | null>(null);
+  const [graphAgent, setGraphAgent] = useState<AgentRead | null>(null);
 
   const handleDeleteConfirm = async () => {
     if (!deletingAgent) return;
@@ -74,6 +87,7 @@ const AgentsPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
+                <TableCell>Type</TableCell>
                 <TableCell>LLM Model</TableCell>
                 <TableCell>Collections</TableCell>
                 <TableCell>Status</TableCell>
@@ -89,6 +103,14 @@ const AgentsPage = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>
+                    <Chip
+                      label={AGENT_TYPE_LABELS[agent.agent_type]}
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                    />
+                  </TableCell>
+                  <TableCell>
                     <Typography variant="body2" color="text.secondary">
                       {agent.llm.model_name}
                     </Typography>
@@ -101,7 +123,12 @@ const AgentsPage = () => {
                     ) : (
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                         {agent.collections.map(c => (
-                          <Chip key={c.id} label={c.name} size="small" variant="outlined" />
+                          <Chip
+                            key={c.id}
+                            label={c.name}
+                            size="small"
+                            variant="outlined"
+                          />
                         ))}
                       </Box>
                     )}
@@ -115,8 +142,21 @@ const AgentsPage = () => {
                     />
                   </TableCell>
                   <TableCell align="right">
+                    <Tooltip title="View graph">
+                      <IconButton
+                        size="small"
+                        onClick={() => setGraphAgent(agent)}
+                        sx={{ color: 'text.secondary' }}
+                      >
+                        <Network size={15} />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => setEditingAgent(agent)}>
+                      <IconButton
+                        size="small"
+                        onClick={() => setEditingAgent(agent)}
+                        sx={{ ml: 0.5 }}
+                      >
                         <Pencil size={15} />
                       </IconButton>
                     </Tooltip>
@@ -154,6 +194,15 @@ const AgentsPage = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeletingAgent(null)}
       />
+
+      {graphAgent && (
+        <AgentGraphDialog
+          agentId={graphAgent.id}
+          agentName={graphAgent.name}
+          open={!!graphAgent}
+          onClose={() => setGraphAgent(null)}
+        />
+      )}
     </Box>
   );
 };

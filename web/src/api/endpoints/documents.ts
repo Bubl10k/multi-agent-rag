@@ -1,5 +1,8 @@
 import { baseApi } from '../baseApi';
-import type { CollectionFilesResponse, UploadDocumentResponse } from '../types/documents';
+import type {
+  CollectionFilesResponse,
+  UploadDocumentResponse,
+} from '../types/documents';
 
 export const documentsApi = baseApi.injectEndpoints({
   endpoints: builder => ({
@@ -30,4 +33,5 @@ export const documentsApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetCollectionFilesQuery, useUploadDocumentMutation } = documentsApi;
+export const { useGetCollectionFilesQuery, useUploadDocumentMutation } =
+  documentsApi;
