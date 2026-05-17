@@ -14,7 +14,6 @@ import {
   Controls,
   type Edge,
   MarkerType,
-  MiniMap,
   type Node,
   Position,
   ReactFlow,
