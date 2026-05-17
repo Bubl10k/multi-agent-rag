@@ -1,6 +1,15 @@
 import { type KeyboardEvent } from 'react';
-import { Box, IconButton, TextField, Tooltip, Typography } from '@mui/material';
+import {
+  Box,
+  IconButton,
+  MenuItem,
+  Select,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { ArrowUp } from 'lucide-react';
+import type { LLMRead } from '@/api/types/llm';
 
 type Props = {
   value: string;
@@ -8,6 +17,9 @@ type Props = {
   onSend: () => void;
   placeholder?: string;
   disabled?: boolean;
+  llms?: LLMRead[];
+  selectedLlmId?: string;
+  onLlmChange?: (id: string) => void;
 };
 
 const ChatInput = ({
@@ -16,6 +28,9 @@ const ChatInput = ({
   onSend,
   placeholder = 'Message...',
   disabled = false,
+  llms,
+  selectedLlmId,
+  onLlmChange,
 }: Props) => {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -51,19 +66,43 @@ const ChatInput = ({
           '&:focus-within': { borderColor: 'primary.main' },
         }}
       >
-        <TextField
-          fullWidth
-          multiline
-          maxRows={6}
-          placeholder={placeholder}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          variant="standard"
-          slotProps={{ input: { disableUnderline: true } }}
-          sx={{ fontSize: '0.9rem' }}
-        />
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {llms && llms.length > 0 && onLlmChange && (
+            <Select
+              variant="standard"
+              disableUnderline
+              size="small"
+              value={selectedLlmId ?? ''}
+              onChange={e => onLlmChange(e.target.value)}
+              displayEmpty
+              sx={{
+                fontSize: '0.75rem',
+                color: 'text.secondary',
+                alignSelf: 'flex-start',
+                '.MuiSelect-select': { py: 0, pr: '20px !important' },
+              }}
+            >
+              {llms.map(llm => (
+                <MenuItem key={llm.id} value={llm.id} sx={{ fontSize: '0.8rem' }}>
+                  {llm.model_name}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
+          <TextField
+            fullWidth
+            multiline
+            maxRows={6}
+            placeholder={placeholder}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={disabled}
+            variant="standard"
+            slotProps={{ input: { disableUnderline: true } }}
+            sx={{ fontSize: '0.9rem' }}
+          />
+        </Box>
         <Tooltip title="Send (Enter)">
           <span>
             <IconButton

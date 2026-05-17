@@ -1,7 +1,10 @@
 import { baseApi } from '../baseApi';
 import type {
   AgentCreate,
+  AgentDefaultPrompt,
+  AgentGraphJSON,
   AgentRead,
+  AgentType,
   AgentUpdate,
   AgentsListParams,
 } from '../types/agent';
@@ -49,6 +52,15 @@ export const agentApi = baseApi.injectEndpoints({
         { type: 'Agent', id: 'LIST' },
       ],
     }),
+    getDefaultPrompts: builder.query<AgentDefaultPrompt[], void>({
+      query: () => '/agents/prompts',
+    }),
+    getDefaultPrompt: builder.query<AgentDefaultPrompt, AgentType>({
+      query: agentType => `/agents/prompts/${agentType}`,
+    }),
+    getAgentGraphJSON: builder.query<AgentGraphJSON, string>({
+      query: id => `/agents/${id}/graph/json`,
+    }),
   }),
 });
 
@@ -58,4 +70,7 @@ export const {
   useCreateAgentMutation,
   useUpdateAgentMutation,
   useDeleteAgentMutation,
+  useGetDefaultPromptsQuery,
+  useGetDefaultPromptQuery,
+  useGetAgentGraphJSONQuery,
 } = agentApi;

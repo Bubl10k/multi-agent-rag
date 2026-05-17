@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Autocomplete,
@@ -28,13 +28,22 @@ import FormTextField from '@/components/Form/FormTextField.tsx';
 import SubmitButton from '@/components/Form/SubmitButton.tsx';
 import {
   useCreateAgentMutation,
+  useGetDefaultPromptsQuery,
   useUpdateAgentMutation,
 } from '@/api/endpoints/agent.ts';
 import { useGetLLMsQuery } from '@/api/endpoints/llm.ts';
 import { useGetCollectionsQuery } from '@/api/endpoints/collection.ts';
 import { agentFormSchema, type AgentFormValues } from '@/validation/agent.ts';
-import type { AgentRead } from '@/api/types/agent.ts';
+import { AgentType, type AgentRead } from '@/api/types/agent.ts';
 import { useThemeMode } from '@/theme/ThemeContext.tsx';
+
+const AGENT_TYPE_LABELS: Record<AgentType, string> = {
+  [AgentType.GENERAL]: 'General',
+  [AgentType.PROGRAMMING]: 'Programming',
+  [AgentType.MATH]: 'Math',
+  [AgentType.RESEARCHER]: 'Researcher',
+  [AgentType.INVOICE]: 'Invoice',
+};
 
 type Props = {
   open: boolean;
@@ -47,20 +56,29 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
   const { mode } = useThemeMode();
   const [createAgent, { isLoading: isCreating }] = useCreateAgentMutation();
   const [updateAgent, { isLoading: isUpdating }] = useUpdateAgentMutation();
+  const { data: defaultPrompts = [] } = useGetDefaultPromptsQuery();
   const { data: llms = [], isLoading: llmsLoading } = useGetLLMsQuery();
   const { data: collections = [], isLoading: collectionsLoading } =
     useGetCollectionsQuery();
 
-  const { control, handleSubmit, reset } = useForm<AgentFormValues>({
+  const { control, handleSubmit, reset, setValue } = useForm<AgentFormValues>({
     resolver: zodResolver(agentFormSchema),
     defaultValues: {
       name: '',
       prompt: '',
       llm_id: '',
+      agent_type: AgentType.GENERAL,
       collection_ids: [],
       is_active: true,
     },
   });
+
+  const selectedAgentType = useWatch({ control, name: 'agent_type' });
+
+  const handleUseDefaultPrompt = () => {
+    const match = defaultPrompts.find(p => p.agent_type === selectedAgentType);
+    if (match) setValue('prompt', match.content);
+  };
 
   useEffect(() => {
     if (open) {
@@ -68,6 +86,7 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
         name: agent?.name ?? '',
         prompt: agent?.prompt ?? '',
         llm_id: agent?.llm.id ?? '',
+        agent_type: agent?.agent_type ?? AgentType.GENERAL,
         collection_ids: agent?.collections.map(c => c.id) ?? [],
         is_active: agent?.is_active ?? true,
       });
@@ -79,6 +98,7 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
       name: values.name,
       prompt: values.prompt,
       llm_id: values.llm_id,
+      agent_type: values.agent_type,
       collection_ids: values.collection_ids,
       is_active: values.is_active,
     };
@@ -105,17 +125,25 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
               control={control}
               render={({ field, fieldState }) => (
                 <Box data-color-mode={mode}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.5,
-                      ml: 1.75,
-                      color: fieldState.error ? 'error.main' : 'text.secondary',
-                    }}
-                  >
-                    System Prompt
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        ml: 1.75,
+                        color: fieldState.error ? 'error.main' : 'text.secondary',
+                      }}
+                    >
+                      System Prompt
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={handleUseDefaultPrompt}
+                      disabled={!defaultPrompts.some(p => p.agent_type === selectedAgentType)}
+                    >
+                      Use default
+                    </Button>
+                  </Box>
                   <MDEditor
                     value={field.value}
                     onChange={v => field.onChange(v ?? '')}
@@ -153,6 +181,26 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
                         </MenuItem>
                       ))
                     )}
+                  </Select>
+                  {fieldState.error && (
+                    <FormHelperText>{fieldState.error.message}</FormHelperText>
+                  )}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              name="agent_type"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormControl fullWidth error={!!fieldState.error}>
+                  <InputLabel>Agent Type</InputLabel>
+                  <Select {...field} label="Agent Type">
+                    {Object.values(AgentType).map(type => (
+                      <MenuItem key={type} value={type}>
+                        {AGENT_TYPE_LABELS[type]}
+                      </MenuItem>
+                    ))}
                   </Select>
                   {fieldState.error && (
                     <FormHelperText>{fieldState.error.message}</FormHelperText>

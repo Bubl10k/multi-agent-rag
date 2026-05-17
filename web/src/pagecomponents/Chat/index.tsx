@@ -5,8 +5,9 @@ import { MessageSquare } from 'lucide-react';
 
 import { MessageRole, type Message } from '@/types/chat';
 import { useAgentChat } from '@/hooks/useAgentChat';
-import { useGetAgentQuery } from '@/api/endpoints/agent';
+import { useGetAgentQuery, useUpdateAgentMutation } from '@/api/endpoints/agent';
 import { useGetConversationQuery } from '@/api/endpoints/conversation';
+import { useGetLLMsQuery } from '@/api/endpoints/llm';
 import ChatHeader from '@/components/Chat/ChatHeader';
 import ChatMessage from '@/components/Chat/ChatMessage';
 import ChatInput from '@/components/Chat/ChatInput';
@@ -18,6 +19,25 @@ const ChatPage = () => {
   const conversationId = searchParams.get('conversationId') ?? undefined;
 
   const { data: agent } = useGetAgentQuery(agentId!, { skip: !agentId });
+  const { data: llms } = useGetLLMsQuery();
+  const [updateAgent] = useUpdateAgentMutation();
+
+  const [selectedLlmId, setSelectedLlmId] = useState<string | undefined>(
+    agent?.llm.id,
+  );
+
+  useEffect(() => {
+    if (agent?.llm.id && !selectedLlmId) {
+      setSelectedLlmId(agent.llm.id);
+    }
+  }, [agent?.llm.id, selectedLlmId]);
+
+  const handleLlmChange = (llmId: string) => {
+    if (!agentId) return;
+    setSelectedLlmId(llmId);
+    updateAgent({ id: agentId, data: { llm_id: llmId } });
+  };
+
   const { data: existingConversation } = useGetConversationQuery(
     conversationId!,
     {
@@ -134,6 +154,9 @@ const ChatPage = () => {
         onSend={handleSend}
         placeholder={agent ? `Message ${agent.name}…` : 'Message…'}
         disabled={isStreaming}
+        llms={llms}
+        selectedLlmId={selectedLlmId}
+        onLlmChange={handleLlmChange}
       />
     </Box>
   );
