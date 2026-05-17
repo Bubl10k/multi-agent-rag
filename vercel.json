@@ -1,5 +1,5 @@
 {
-  "outputDirectory": "web/dist",
+  "outputDirectory": "dist",
   "env": {
     "VITE_API_BASE_URL": "/api"
   },
