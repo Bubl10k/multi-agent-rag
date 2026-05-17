@@ -5,7 +5,7 @@ import { localStorageService } from '@/utils/localStorage';
 import type { TokenResponse } from './types/auth';
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: '/api',
+  baseUrl: import.meta.env.VITE_API_BASE_URL ?? '/api',
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
     if (token) {
