@@ -4,6 +4,7 @@ export const ROUTES = {
   AGENTS: '/agents',
   LLM_MODELS: '/llm-models',
   COLLECTIONS: '/collections',
+  DASHBOARD: '/dashboard',
   LOGIN: '/login',
   REGISTER: '/register',
 } as const;

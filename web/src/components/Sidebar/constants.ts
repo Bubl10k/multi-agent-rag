@@ -12,5 +12,5 @@ export const ACTION_BUTTONS: ActionButtonDef[] = [
   { label: 'Manage Agents', Icon: UserCog, path: ROUTES.AGENTS },
   { label: 'LLM Models', Icon: Brain, path: ROUTES.LLM_MODELS },
   { label: 'Collections', Icon: FolderOpen, path: ROUTES.COLLECTIONS },
-  { label: 'Dashboard', Icon: LayoutDashboard },
+  { label: 'Dashboard', Icon: LayoutDashboard, path: ROUTES.DASHBOARD },
 ];

@@ -54,6 +54,14 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: ROUTES.DASHBOARD,
+            lazy: async () => {
+              const { default: Component } =
+                await import('@/pagecomponents/Dashboard');
+              return { Component };
+            },
+          },
+          {
             path: '*',
             lazy: async () => {
               const { default: Component } =
