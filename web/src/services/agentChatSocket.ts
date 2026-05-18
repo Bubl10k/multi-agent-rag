@@ -8,7 +8,7 @@ type AgentChatSocketCallbacks = {
 
 const buildWsUrl = (agentId: string, token: string): string => {
   const apiBase = import.meta.env.VITE_API_BASE_URL;
-  if (apiBase) {
+  if (apiBase && apiBase.startsWith('http')) {
     const wsBase = apiBase.replace(/^http/, 'ws');
     return `${wsBase}/agents/${agentId}/chat?token=${token}`;
   }
