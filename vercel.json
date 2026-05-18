@@ -1,7 +1,7 @@
 {
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "http://3.79.21.97/api/:path*" },
+    { "source": "/api/:path*", "destination": "http://3.72.47.13/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
