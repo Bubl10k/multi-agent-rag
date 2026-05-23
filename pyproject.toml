@@ -52,8 +52,8 @@ lint.ignore = [
 lint.exclude = [
     'venv', '.git',
     '.idea', '__pycache__',
-    '**/migrations/**', 'scripts/',
-    '**/tests/**'
+    '**/alembic/**', '**/migrations/**',
+    'scripts/', '**/tests/**'
 ]
 lint.select = [
     "I", # isort

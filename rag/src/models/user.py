@@ -1,8 +1,8 @@
 import logging
 import uuid
 
-from fastapi import Request, Depends
-from fastapi_users import UUIDIDMixin, BaseUserManager
+from fastapi import Depends, Request
+from fastapi_users import BaseUserManager, UUIDIDMixin
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
