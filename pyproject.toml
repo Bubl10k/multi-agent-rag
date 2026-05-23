@@ -31,6 +31,18 @@ dependencies = [
     "reportlab>=4.5.1",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "pip-audit>=2.7",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["rag/src/tests"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py312"
@@ -41,8 +53,8 @@ lint.ignore = [
 lint.exclude = [
     'venv', '.git',
     '.idea', '__pycache__',
-    '**/migrations/**', 'scripts/',
-    '**/tests/**'
+    '**/alembic/**', '**/migrations/**',
+    'scripts/', '**/tests/**'
 ]
 lint.select = [
     "I", # isort
@@ -63,3 +75,11 @@ lint.select = [
 line-length = 120
 target-version = ['py313']
 include = '.pyi?$'
+extend-exclude = '''
+/(
+  \.git
+  | \.venv
+  | venv
+  | rag/src/db/alembic
+)/
+'''

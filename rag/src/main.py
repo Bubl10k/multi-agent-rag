@@ -1,4 +1,5 @@
 import logging
+
 import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -17,6 +18,7 @@ origins = [
     "http://localhost",
     "http://localhost:3000",
 ] + settings.app.ALLOWED_ORIGINS
+
 
 def get_application():
     _app = FastAPI()
