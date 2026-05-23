@@ -1,13 +1,13 @@
 name: CD - Deploy to EC2
 
 on:
-  push:
-    branches:
-      - ci/cd
+  pull_request:
+    types:
+      - closed
 
 jobs:
   deploy:
-    # if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     name: Deploy to EC2
     runs-on: ubuntu-latest
     steps:
