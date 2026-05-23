@@ -2,8 +2,8 @@ name: CD - Deploy to EC2
 
 on:
   pull_request:
-    types:
-      - closed
+#    types:
+#      - closed
 
 jobs:
   deploy:
