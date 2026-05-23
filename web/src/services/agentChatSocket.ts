@@ -1,8 +1,9 @@
-import { WsMessageType, type WsIncomingDone, type WsIncomingError } from '@/types/agentChat';
+import { WsMessageType, type WsIncomingDone, type WsIncomingStop, type WsIncomingError } from '@/types/agentChat';
 
 type AgentChatSocketCallbacks = {
   onToken: (token: string) => void;
   onDone: (payload: WsIncomingDone) => void;
+  onStopped: (payload: WsIncomingStop) => void;
   onError: (message: string) => void;
 };
 
@@ -19,12 +20,14 @@ const buildWsUrl = (agentId: string, token: string): string => {
 type ParsedMessage =
   | { type: WsMessageType.Token; value: string }
   | { type: WsMessageType.Done; payload: WsIncomingDone }
+  | { type: WsMessageType.Stopped; payload: WsIncomingStop }
   | { type: WsMessageType.Error; message: string };
 
 const parseMessage = (raw: string): ParsedMessage => {
   try {
-    const data = JSON.parse(raw) as WsIncomingDone | WsIncomingError;
+    const data = JSON.parse(raw) as WsIncomingDone | WsIncomingStop | WsIncomingError;
     if ('error' in data) return { type: WsMessageType.Error, message: data.error };
+    if ('stopped' in data) return { type: WsMessageType.Stopped, payload: data };
     if ('done' in data) return { type: WsMessageType.Done, payload: data };
   } catch {
     // not JSON — plain text token
@@ -46,6 +49,7 @@ export class AgentChatSocket {
       const parsed = parseMessage(event.data as string);
       if (parsed.type === WsMessageType.Token) callbacks.onToken(parsed.value);
       else if (parsed.type === WsMessageType.Done) callbacks.onDone(parsed.payload);
+      else if (parsed.type === WsMessageType.Stopped) callbacks.onStopped(parsed.payload);
       else callbacks.onError(parsed.message);
     };
 
@@ -62,6 +66,11 @@ export class AgentChatSocket {
         ...(conversationId ? { conversation_id: conversationId } : {}),
       }),
     );
+  }
+
+  stop(): void {
+    if (this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({ type: WsMessageType.Stop }));
   }
 
   isOpen(): boolean {

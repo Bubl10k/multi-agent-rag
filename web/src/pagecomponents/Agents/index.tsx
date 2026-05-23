@@ -30,6 +30,7 @@ const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.MATH]: 'Math',
   [AgentType.RESEARCHER]: 'Researcher',
   [AgentType.INVOICE]: 'Invoice',
+  [AgentType.ROUTER]: 'Router',
 };
 import AgentFormDialog from './components/AgentFormDialog.tsx';
 import AgentGraphDialog from './components/AgentGraphDialog.tsx';
@@ -112,7 +113,7 @@ const AgentsPage = () => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {agent.llm.model_name}
+                      {agent.platform_llm?.display_name ?? agent.llm?.model_name ?? '—'}
                     </Typography>
                   </TableCell>
                   <TableCell>

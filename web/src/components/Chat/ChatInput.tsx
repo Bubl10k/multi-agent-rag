@@ -1,35 +1,42 @@
 import { type KeyboardEvent } from 'react';
 import {
   Box,
+  Chip,
   IconButton,
+  ListSubheader,
   MenuItem,
   Select,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Square } from 'lucide-react';
 import type { LLMRead } from '@/api/types/llm';
+import type { PlatformLLMRead } from '@/api/types/platform_llm';
 
 type Props = {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
+  onStop?: () => void;
   placeholder?: string;
   disabled?: boolean;
   llms?: LLMRead[];
-  selectedLlmId?: string;
-  onLlmChange?: (id: string) => void;
+  platformLlms?: PlatformLLMRead[];
+  selectedLlmSelection?: string;
+  onLlmChange?: (selection: string) => void;
 };
 
 const ChatInput = ({
   value,
   onChange,
   onSend,
+  onStop,
   placeholder = 'Message...',
   disabled = false,
   llms,
-  selectedLlmId,
+  platformLlms,
+  selectedLlmSelection,
   onLlmChange,
 }: Props) => {
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -40,6 +47,7 @@ const ChatInput = ({
   };
 
   const canSend = !!value.trim() && !disabled;
+  const hasLlmOptions = (llms && llms.length > 0) || (platformLlms && platformLlms.length > 0);
 
   return (
     <Box
@@ -67,12 +75,12 @@ const ChatInput = ({
         }}
       >
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          {llms && llms.length > 0 && onLlmChange && (
+          {hasLlmOptions && onLlmChange && (
             <Select
               variant="standard"
               disableUnderline
               size="small"
-              value={selectedLlmId ?? ''}
+              value={selectedLlmSelection ?? ''}
               onChange={e => onLlmChange(e.target.value)}
               displayEmpty
               sx={{
@@ -82,11 +90,34 @@ const ChatInput = ({
                 '.MuiSelect-select': { py: 0, pr: '20px !important' },
               }}
             >
-              {llms.map(llm => (
-                <MenuItem key={llm.id} value={llm.id} sx={{ fontSize: '0.8rem' }}>
-                  {llm.model_name}
-                </MenuItem>
-              ))}
+              {platformLlms && platformLlms.length > 0 && [
+                <ListSubheader key="platform-header" sx={{ fontSize: '0.7rem', lineHeight: '28px' }}>
+                  Platform Models (free)
+                </ListSubheader>,
+                ...platformLlms.map(llm => (
+                  <MenuItem key={`platform:${llm.id}`} value={`platform:${llm.id}`} sx={{ fontSize: '0.8rem' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                      <span>{llm.display_name}</span>
+                      <Chip
+                        size="small"
+                        label={`${llm.requests_used}/${llm.requests_limit}/hr`}
+                        color={llm.requests_used >= llm.requests_limit ? 'error' : 'default'}
+                        sx={{ ml: 'auto', fontSize: '0.65rem', height: 18 }}
+                      />
+                    </Box>
+                  </MenuItem>
+                )),
+              ]}
+              {llms && llms.length > 0 && [
+                <ListSubheader key="user-header" sx={{ fontSize: '0.7rem', lineHeight: '28px' }}>
+                  Your Models
+                </ListSubheader>,
+                ...llms.map(llm => (
+                  <MenuItem key={`user:${llm.id}`} value={`user:${llm.id}`} sx={{ fontSize: '0.8rem' }}>
+                    {llm.model_name}
+                  </MenuItem>
+                )),
+              ]}
             </Select>
           )}
           <TextField
@@ -103,27 +134,47 @@ const ChatInput = ({
             sx={{ fontSize: '0.9rem' }}
           />
         </Box>
-        <Tooltip title="Send (Enter)">
-          <span>
+        {disabled && onStop ? (
+          <Tooltip title="Stop">
             <IconButton
-              onClick={onSend}
-              disabled={!canSend}
+              onClick={onStop}
               size="small"
               sx={{
-                bgcolor: canSend ? 'primary.main' : 'action.disabledBackground',
-                color: canSend ? 'primary.contrastText' : 'action.disabled',
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
                 borderRadius: 1.5,
                 width: 32,
                 height: 32,
                 flexShrink: 0,
                 '&:hover': { bgcolor: 'primary.dark' },
-                '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
               }}
             >
-              <ArrowUp size={16} />
+              <Square size={14} fill="currentColor" />
             </IconButton>
-          </span>
-        </Tooltip>
+          </Tooltip>
+        ) : (
+          <Tooltip title="Send (Enter)">
+            <span>
+              <IconButton
+                onClick={onSend}
+                disabled={!canSend}
+                size="small"
+                sx={{
+                  bgcolor: canSend ? 'primary.main' : 'action.disabledBackground',
+                  color: canSend ? 'primary.contrastText' : 'action.disabled',
+                  borderRadius: 1.5,
+                  width: 32,
+                  height: 32,
+                  flexShrink: 0,
+                  '&:hover': { bgcolor: 'primary.dark' },
+                  '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
+                }}
+              >
+                <ArrowUp size={16} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
       </Box>
       <Typography
         variant="caption"

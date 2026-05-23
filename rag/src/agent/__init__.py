@@ -5,6 +5,7 @@ from .invoice import InvoiceAgentGraph
 from .math import MathAgentGraph
 from .programming import ProgrammingAgentGraph
 from .researcher import ResearcherAgentGraph
+from .router import RouterAgentGraph
 from .types import AgentType
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "MathAgentGraph",
     "ProgrammingAgentGraph",
     "ResearcherAgentGraph",
+    "RouterAgentGraph",
     "StreamEvent",
 ]

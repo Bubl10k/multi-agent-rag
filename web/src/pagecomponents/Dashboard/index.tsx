@@ -143,7 +143,7 @@ const DashboardPage = () => {
 
   // agents per LLM
   const agentCountByLLM = agents.reduce<Record<string, number>>(
-    (acc, a) => ({ ...acc, [a.llm.id]: (acc[a.llm.id] ?? 0) + 1 }),
+    (acc, a) => a.llm ? { ...acc, [a.llm.id]: (acc[a.llm.id] ?? 0) + 1 } : acc,
     {},
   );
   const llmUsage = llms

@@ -6,7 +6,9 @@ from rag.src.api.routes.collection import router as collection_router
 from rag.src.api.routes.conversation import router as conversation_router
 from rag.src.api.routes.documents import router as documents_router
 from rag.src.api.routes.health_check import router as health_check_router
+from rag.src.api.routes.invoices import router as invoices_router
 from rag.src.api.routes.llm import router as llm_router
+from rag.src.api.routes.platform_llm import router as platform_llm_router
 from rag.src.api.schemas.users import UserCreate, UserRead, UserUpdate
 from rag.src.services.auth import fastapi_users
 
@@ -15,6 +17,8 @@ __all__ = ["router"]
 router = APIRouter(prefix="/api")
 
 router.include_router(health_check_router)
+router.include_router(platform_llm_router)
+router.include_router(invoices_router)
 router.include_router(documents_router)
 router.include_router(conversation_router)
 router.include_router(collection_router)

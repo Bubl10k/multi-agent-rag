@@ -16,9 +16,11 @@ from rag.src.services import (
     LLMService,
 )
 from rag.src.services.auth import current_active_user
+from rag.src.services.platform_llm import PlatformLLMService
 from rag.src.utils.unit_of_work import UnitOfWork
 
 UnitOfWorkDep = Annotated[UnitOfWork, Depends(UnitOfWork)]
+PlatformLLMServiceDep = Annotated[PlatformLLMService, Depends(PlatformLLMService)]
 AuthServiceDep = Annotated[AuthService, Depends(AuthService)]
 AgentServiceDep = Annotated[AgentService, Depends(AgentService)]
 AgentStreamingServiceDep = Annotated[AgentStreamingService, Depends(AgentStreamingService)]

@@ -7,6 +7,7 @@ from rag.src.agent.invoice import InvoiceAgentGraph
 from rag.src.agent.math import MathAgentGraph
 from rag.src.agent.programming import ProgrammingAgentGraph
 from rag.src.agent.researcher import ResearcherAgentGraph
+from rag.src.agent.router import RouterAgentGraph
 from rag.src.agent.types import AgentType
 
 
@@ -17,6 +18,7 @@ class AgentGraphFactory:
         AgentType.MATH: MathAgentGraph,
         AgentType.RESEARCHER: ResearcherAgentGraph,
         AgentType.INVOICE: InvoiceAgentGraph,
+        AgentType.ROUTER: RouterAgentGraph,
     }
 
     @classmethod

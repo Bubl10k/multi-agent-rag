@@ -9,7 +9,9 @@ from rag.src.repositories.collection import CollectionRepository
 from rag.src.repositories.conversation import ConversationRepository
 from rag.src.repositories.llm import LLMRepository
 from rag.src.repositories.message import MessageRepository
+from rag.src.repositories.platform_llm import PlatformLLMRepository
 from rag.src.repositories.refresh_token import RefreshTokenRepository
+from rag.src.repositories.usage_record import UsageRecordRepository
 
 
 class AbstractUnitOfWork(ABC):
@@ -41,6 +43,8 @@ class UnitOfWork(AbstractUnitOfWork):
         self.llm_repository = LLMRepository(self.session)
         self.conversation_repository = ConversationRepository(self.session)
         self.message_repository = MessageRepository(self.session)
+        self.platform_llm_repository = PlatformLLMRepository(self.session)
+        self.usage_record_repository = UsageRecordRepository(self.session)
         self.refresh_token_repository = RefreshTokenRepository(self.session)
 
         return self
