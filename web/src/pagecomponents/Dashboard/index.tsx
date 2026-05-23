@@ -50,6 +50,7 @@ const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.MATH]: 'Math',
   [AgentType.RESEARCHER]: 'Researcher',
   [AgentType.INVOICE]: 'Invoice',
+  [AgentType.ROUTER]: 'Router',
 };
 
 const CHART_COLORS = [
