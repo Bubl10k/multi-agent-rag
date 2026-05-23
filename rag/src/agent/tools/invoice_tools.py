@@ -1,5 +1,4 @@
 import logging
-import os
 from io import BytesIO
 
 from reportlab.lib import colors
@@ -117,11 +116,8 @@ def render_invoice_pdf(
     return buffer.getvalue()
 
 
-# TODO: remade it to s3 buckets
-def save_invoice_file(pdf_bytes: bytes, filename: str, storage_dir: str) -> str:
-    os.makedirs(storage_dir, exist_ok=True)
-    path = os.path.join(storage_dir, filename)
-    with open(path, "wb") as fh:
-        fh.write(pdf_bytes)
-    logger.info("Invoice saved: %s", path)
-    return path
+def save_invoice_file(pdf_bytes: bytes, filename: str, storage_dir: str = "invoices") -> str:
+    from rag.src.services.s3 import s3_service
+
+    key = f"{storage_dir.strip('/')}/{filename}"
+    return s3_service.upload_invoice(pdf_bytes, key)

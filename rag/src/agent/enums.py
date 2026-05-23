@@ -34,3 +34,16 @@ class InvoiceNode(StrEnum):
     FIX_ITEMS = "fix_items"
     GENERATE_INVOICE = "generate_invoice"
     FORMAT_OUTPUT = "format_output"
+
+
+class RouterNode(StrEnum):
+    ROUTE = "route"
+    GENERAL = "general"
+    PROGRAMMING = "programming"
+    MATH = "math"
+    RESEARCHER = "researcher"
+    INVOICE = "invoice"
+
+
+class WsClientMessageType(StrEnum):
+    STOP = "stop"

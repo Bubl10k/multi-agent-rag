@@ -41,6 +41,7 @@ def make_agent_obj(user_id: uuid.UUID = USER_ID) -> SimpleNamespace:
         is_active=True,
         user_id=user_id,
         llm=make_llm_obj(user_id),
+        platform_llm=None,
         collections=[],
     )
 

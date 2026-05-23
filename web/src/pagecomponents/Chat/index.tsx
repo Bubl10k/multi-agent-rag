@@ -5,9 +5,14 @@ import { MessageSquare } from 'lucide-react';
 
 import { MessageRole, type Message } from '@/types/chat';
 import { useAgentChat } from '@/hooks/useAgentChat';
-import { useGetAgentQuery, useUpdateAgentMutation } from '@/api/endpoints/agent';
+import {
+  useGetAgentQuery,
+  useUpdateAgentMutation,
+} from '@/api/endpoints/agent';
 import { useGetConversationQuery } from '@/api/endpoints/conversation';
 import { useGetLLMsQuery } from '@/api/endpoints/llm';
+import { useGetPlatformLLMsQuery } from '@/api/endpoints/platform_llm';
+import { parseLLMSelection } from '@/validation/agent';
 import ChatHeader from '@/components/Chat/ChatHeader';
 import ChatMessage from '@/components/Chat/ChatMessage';
 import ChatInput from '@/components/Chat/ChatInput';
@@ -20,22 +25,29 @@ const ChatPage = () => {
 
   const { data: agent } = useGetAgentQuery(agentId!, { skip: !agentId });
   const { data: llms } = useGetLLMsQuery();
+  const { data: platformLlms } = useGetPlatformLLMsQuery();
   const [updateAgent] = useUpdateAgentMutation();
 
-  const [selectedLlmId, setSelectedLlmId] = useState<string | undefined>(
-    agent?.llm.id,
-  );
+  const initialSelection = agent?.platform_llm
+    ? `platform:${agent.platform_llm.id}`
+    : agent?.llm
+      ? `user:${agent.llm.id}`
+      : undefined;
+
+  const [selectedLlmSelection, setSelectedLlmSelection] = useState<
+    string | undefined
+  >(initialSelection);
 
   useEffect(() => {
-    if (agent?.llm.id && !selectedLlmId) {
-      setSelectedLlmId(agent.llm.id);
+    if (initialSelection && !selectedLlmSelection) {
+      setSelectedLlmSelection(initialSelection);
     }
-  }, [agent?.llm.id, selectedLlmId]);
+  }, [initialSelection, selectedLlmSelection]);
 
-  const handleLlmChange = (llmId: string) => {
+  const handleLlmChange = (selection: string) => {
     if (!agentId) return;
-    setSelectedLlmId(llmId);
-    updateAgent({ id: agentId, data: { llm_id: llmId } });
+    setSelectedLlmSelection(selection);
+    updateAgent({ id: agentId, data: parseLLMSelection(selection) });
   };
 
   const { data: existingConversation } = useGetConversationQuery(
@@ -54,13 +66,17 @@ const ChatPage = () => {
     }));
   }, [existingConversation]);
 
-  const { messages, streamingContent, isStreaming, sendMessage } = useAgentChat(
-    {
-      agentId: agentId ?? '',
-      initialConversationId: conversationId,
-      initialMessages,
-    },
-  );
+  const {
+    messages,
+    streamingContent,
+    isStreaming,
+    sendMessage,
+    stopStreaming,
+  } = useAgentChat({
+    agentId: agentId ?? '',
+    initialConversationId: conversationId,
+    initialMessages,
+  });
 
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -128,6 +144,7 @@ const ChatPage = () => {
           <Box
             sx={{
               maxWidth: 900,
+              minWidth: 700,
               mx: 'auto',
               display: 'flex',
               flexDirection: 'column',
@@ -152,10 +169,12 @@ const ChatPage = () => {
         value={input}
         onChange={setInput}
         onSend={handleSend}
+        onStop={stopStreaming}
         placeholder={agent ? `Message ${agent.name}…` : 'Message…'}
         disabled={isStreaming}
         llms={llms}
-        selectedLlmId={selectedLlmId}
+        platformLlms={platformLlms}
+        selectedLlmSelection={selectedLlmSelection}
         onLlmChange={handleLlmChange}
       />
     </Box>

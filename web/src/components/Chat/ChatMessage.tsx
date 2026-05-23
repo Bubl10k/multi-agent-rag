@@ -17,6 +17,34 @@ type Props = {
 
 const ChatMessage = ({ message, isTyping }: Props) => {
   const isUser = message.role === MessageRole.User;
+  const isError = message.role === MessageRole.Error;
+
+  console.log('message', message);
+
+  if (isError) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            px: 2,
+            py: 1,
+            borderRadius: 2,
+            bgcolor: 'error.main',
+            color: 'error.contrastText',
+            maxWidth: '80%',
+          }}
+        >
+          {message.content}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box

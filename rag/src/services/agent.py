@@ -8,7 +8,10 @@ class AgentService:
     @staticmethod
     async def create(uow: UnitOfWork, data: AgentCreate, user_id: uuid.UUID) -> AgentRead:
         async with uow:
-            await uow.llm_repository.get_one_or_404(id=data.llm_id)
+            if data.llm_id is not None:
+                await uow.llm_repository.get_one_or_404(id=data.llm_id)
+            else:
+                await uow.platform_llm_repository.get_one_or_404(id=data.platform_llm_id)
 
             collection_ids = data.collection_ids
             payload = data.model_dump(exclude={"collection_ids"})
@@ -43,6 +46,8 @@ class AgentService:
         async with uow:
             if data.llm_id is not None:
                 await uow.llm_repository.get_one_or_404(id=data.llm_id)
+            elif data.platform_llm_id is not None:
+                await uow.platform_llm_repository.get_one_or_404(id=data.platform_llm_id)
 
             collection_ids = data.collection_ids
             payload = data.model_dump(exclude_none=True, exclude={"collection_ids"})

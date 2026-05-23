@@ -1,124 +1,162 @@
+import { useState, type AnchorHTMLAttributes } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import {
-  vscDarkPlus,
-  vs,
-} from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Box, Divider, Link, Typography } from '@mui/material';
-import type { Components } from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
+import { Highlight, themes } from 'prism-react-renderer';
+import { Box, IconButton, Link, Tooltip, Typography } from '@mui/material';
+import { Copy, Check } from 'lucide-react';
+import 'katex/dist/katex.min.css';
 
 import { useThemeMode } from '@/theme/ThemeContext';
+import { useAppSelector } from '@/store';
+import { preprocessMarkdown } from './preprocessMarkdown';
 
-// TODO: refactor this via some Markdown library
-const useComponents = (isDark: boolean): Components => ({
-  code({ className, children, ...props }) {
-    const match = /language-(\w+)/.exec(className ?? '');
-    const isBlock = !!match;
-    if (!isBlock) {
-      return (
-        <Box
-          component="code"
-          sx={{
-            px: 0.6,
-            py: 0.2,
-            borderRadius: 1,
-            bgcolor: 'action.hover',
-            fontFamily: 'monospace',
-            fontSize: '0.85em',
-          }}
-          {...(props as object)}
-        >
-          {children}
-        </Box>
-      );
-    }
+const useInvoiceDownload = () => {
+  const token = useAppSelector(state => state.auth.token);
+  return async (href: string) => {
+    const res = await fetch(href, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const disposition = res.headers.get('Content-Disposition') ?? '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    a.download = match?.[1] ?? 'invoice.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+};
+
+const InvoiceAwareLink = ({ href, children }: AnchorHTMLAttributes<HTMLAnchorElement>) => {
+  const downloadInvoice = useInvoiceDownload();
+  if (href?.includes('/api/invoices/download')) {
     return (
-      <SyntaxHighlighter
-        style={isDark ? vscDarkPlus : vs}
-        language={match[1]}
-        PreTag="div"
-        customStyle={{ borderRadius: 8, margin: '8px 0', fontSize: '0.85rem' }}
+      <Link
+        href={href}
+        onClick={e => {
+          e.preventDefault();
+          void downloadInvoice(href!);
+        }}
+        sx={{ cursor: 'pointer' }}
       >
-        {String(children).replace(/\n$/, '')}
-      </SyntaxHighlighter>
+        {children}
+      </Link>
     );
-  },
-  p: ({ children }) => (
-    <Typography
-      variant="body1"
-      sx={{ lineHeight: 1.7, mb: 1, '&:last-child': { mb: 0 } }}
-    >
-      {children}
-    </Typography>
-  ),
-  h1: ({ children }) => (
-    <Typography variant="h5" fontWeight={700} mb={1}>
-      {children}
-    </Typography>
-  ),
-  h2: ({ children }) => (
-    <Typography variant="h6" fontWeight={700} mb={1}>
-      {children}
-    </Typography>
-  ),
-  h3: ({ children }) => (
-    <Typography variant="subtitle1" fontWeight={700} mb={0.5}>
-      {children}
-    </Typography>
-  ),
-  h4: ({ children }) => (
-    <Typography variant="subtitle2" fontWeight={700} mb={0.5}>
-      {children}
-    </Typography>
-  ),
-  ul: ({ children }) => (
-    <Box component="ul" sx={{ pl: 2.5, my: 0.5 }}>
-      {children}
-    </Box>
-  ),
-  ol: ({ children }) => (
-    <Box component="ol" sx={{ pl: 2.5, my: 0.5 }}>
-      {children}
-    </Box>
-  ),
-  li: ({ children }) => (
-    <Typography component="li" variant="body1" sx={{ lineHeight: 1.7 }}>
-      {children}
-    </Typography>
-  ),
-  a: ({ href, children }) => (
+  }
+  return (
     <Link href={href} target="_blank" rel="noopener noreferrer">
       {children}
     </Link>
-  ),
-  hr: () => <Divider sx={{ my: 1.5 }} />,
-  blockquote: ({ children }) => (
-    <Box
-      component="blockquote"
-      sx={{
-        borderLeft: 3,
-        borderColor: 'divider',
-        pl: 1.5,
-        ml: 0,
-        my: 1,
-        color: 'text.secondary',
-      }}
-    >
-      {children}
-    </Box>
-  ),
-});
+  );
+};
+
+const CopyButton = ({ code }: { code: string }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <Tooltip title={copied ? 'Copied!' : 'Copy'}>
+      <IconButton
+        onClick={handleCopy}
+        size="small"
+        sx={{ position: 'absolute', top: 6, right: 6, opacity: 0.7, '&:hover': { opacity: 1 } }}
+      >
+        {copied ? <Check size={14} /> : <Copy size={14} />}
+      </IconButton>
+    </Tooltip>
+  );
+};
 
 type Props = { children: string };
 
 const MarkdownRenderer = ({ children }: Props) => {
   const { mode } = useThemeMode();
-  const components = useComponents(mode === 'dark');
+  const prismTheme = mode === 'dark' ? themes.vsDark : themes.github;
 
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-      {children}
+    <ReactMarkdown
+      remarkPlugins={[remarkMath, remarkGfm]}
+      rehypePlugins={[rehypeKatex]}
+      components={{
+        code({ className, children: codeChildren }) {
+          const match = /language-(\w+)/.exec(className || '');
+          const codeStr = String(codeChildren).replace(/\n$/, '');
+          const isBlock = !!match || codeStr.includes('\n');
+
+          if (isBlock) {
+            return (
+              <Box sx={{ position: 'relative', my: 1 }}>
+                <Highlight
+                  code={codeStr}
+                  language={match?.[1] ?? 'text'}
+                  theme={prismTheme}
+                >
+                  {({ className: hlClass, style, tokens, getLineProps, getTokenProps }) => (
+                    <pre
+                      className={hlClass}
+                      style={{ ...style, borderRadius: 6, padding: '12px 16px', overflow: 'auto', margin: 0 }}
+                    >
+                      <code>
+                        {tokens.map((line, i) => (
+                          <div key={i} {...getLineProps({ line })}>
+                            {line.map((token, key) => (
+                              <span key={key} {...getTokenProps({ token })} />
+                            ))}
+                          </div>
+                        ))}
+                      </code>
+                    </pre>
+                  )}
+                </Highlight>
+                <CopyButton code={codeStr} />
+              </Box>
+            );
+          }
+
+          return (
+            <Box
+              component="code"
+              sx={{
+                fontSize: '0.875em',
+                bgcolor: 'action.hover',
+                px: 0.5,
+                borderRadius: 0.5,
+                fontFamily: 'monospace',
+              }}
+            >
+              {codeChildren}
+            </Box>
+          );
+        },
+        // Unwrap <pre> so the Highlight block inside code doesn't get double-wrapped
+        pre({ children }) {
+          return <>{children}</>;
+        },
+        a({ href, children }) {
+          return <InvoiceAwareLink href={href}>{children}</InvoiceAwareLink>;
+        },
+        h1({ children }) {
+          return <Typography variant="h5" fontWeight={700} mb={1}>{children}</Typography>;
+        },
+        h2({ children }) {
+          return <Typography variant="h6" fontWeight={700} mb={1}>{children}</Typography>;
+        },
+        h3({ children }) {
+          return <Typography variant="subtitle1" fontWeight={700} mb={0.5}>{children}</Typography>;
+        },
+        h4({ children }) {
+          return <Typography variant="subtitle2" fontWeight={700} mb={0.5}>{children}</Typography>;
+        },
+      }}
+    >
+      {preprocessMarkdown(children)}
     </ReactMarkdown>
   );
 };

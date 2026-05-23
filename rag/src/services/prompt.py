@@ -12,6 +12,7 @@ _PROMPT_FILES: dict[AgentType, str] = {
     AgentType.MATH: "math_prompt.md",
     AgentType.PROGRAMMING: "programming_prompt.md",
     AgentType.INVOICE: "invoice_prompt.md",
+    AgentType.ROUTER: "router_prompt.md",
 }
 
 

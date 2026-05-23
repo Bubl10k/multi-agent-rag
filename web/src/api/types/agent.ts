@@ -1,5 +1,6 @@
 import type { LLMRead } from './llm';
 import type { CollectionRead } from './collection';
+import type { PlatformLLMBasicRead } from './platform_llm';
 
 export enum AgentType {
   GENERAL = 'general',
@@ -7,6 +8,7 @@ export enum AgentType {
   MATH = 'math',
   RESEARCHER = 'researcher',
   INVOICE = 'invoice',
+  ROUTER = 'router',
 }
 
 export type AgentRead = {
@@ -17,14 +19,16 @@ export type AgentRead = {
   agent_config: Record<string, unknown>;
   is_active: boolean;
   user_id: string;
-  llm: LLMRead;
+  llm: LLMRead | null;
+  platform_llm: PlatformLLMBasicRead | null;
   collections: CollectionRead[];
 };
 
 export type AgentCreate = {
   name: string;
   prompt: string;
-  llm_id: string;
+  llm_id?: string;
+  platform_llm_id?: string;
   agent_type?: AgentType;
   agent_config?: Record<string, unknown>;
   collection_ids?: string[];
@@ -35,6 +39,7 @@ export type AgentUpdate = {
   name?: string;
   prompt?: string;
   llm_id?: string;
+  platform_llm_id?: string;
   agent_type?: AgentType;
   agent_config?: Record<string, unknown>;
   collection_ids?: string[];

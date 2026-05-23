@@ -8,6 +8,7 @@ from rag.src.agent.types import AgentType
 from rag.src.models.base import Base, BaseModel
 from rag.src.models.collection import Collection
 from rag.src.models.llm import LLM
+from rag.src.models.platform_llm import PlatformLLM
 
 # m2m junction table
 agent_collection = Table(
@@ -27,8 +28,11 @@ class Agent(BaseModel):
     agent_config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
-    llm_id: Mapped[UUID] = mapped_column(ForeignKey("llm.id"), nullable=False)
-    llm: Mapped[LLM] = relationship("LLM", lazy="joined")
+    llm_id: Mapped[UUID | None] = mapped_column(ForeignKey("llm.id"), nullable=True)
+    llm: Mapped[LLM | None] = relationship("LLM", lazy="joined")
+
+    platform_llm_id: Mapped[UUID | None] = mapped_column(ForeignKey("platform_llm.id"), nullable=True)
+    platform_llm: Mapped[PlatformLLM | None] = relationship("PlatformLLM", lazy="joined")
 
     collections: Mapped[list[Collection]] = relationship("Collection", secondary=agent_collection, lazy="selectin")
 

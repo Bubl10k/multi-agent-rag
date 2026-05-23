@@ -7,3 +7,4 @@ class AgentType(StrEnum):
     MATH = "math"
     RESEARCHER = "researcher"
     INVOICE = "invoice"
+    ROUTER = "router"

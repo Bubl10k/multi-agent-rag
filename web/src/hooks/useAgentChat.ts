@@ -65,6 +65,9 @@ export const useAgentChat = ({
         const isNewConversation = !conversationIdRef.current;
         conversationIdRef.current = conversation_id;
         setConversationId(conversation_id);
+        dispatch(
+          baseApi.util.invalidateTags([{ type: 'PlatformLLM', id: 'LIST' }]),
+        );
         if (isNewConversation) {
           dispatch(
             baseApi.util.invalidateTags([{ type: 'Conversation', id: 'LIST' }]),
@@ -79,10 +82,28 @@ export const useAgentChat = ({
         }
         setIsStreaming(false);
       },
-      onError: message => {
-        console.error(message);
-        setIsStreaming(false);
+      onStopped: ({ conversation_id }) => {
+        const content = streamingBufferRef.current;
+        streamingBufferRef.current = '';
+        conversationIdRef.current = conversation_id;
+        setConversationId(conversation_id);
         setStreamingContent('');
+        if (content) {
+          setMessages(msgs => [
+            ...msgs,
+            { id: Date.now().toString(), role: MessageRole.Assistant, content },
+          ]);
+        }
+        setIsStreaming(false);
+      },
+      onError: message => {
+        streamingBufferRef.current = '';
+        setStreamingContent('');
+        setIsStreaming(false);
+        setMessages(msgs => [
+          ...msgs,
+          { id: Date.now().toString(), role: MessageRole.Error, content: message },
+        ]);
       },
     });
 
@@ -109,11 +130,16 @@ export const useAgentChat = ({
     socket.send(text, conversationIdRef.current);
   }, []);
 
+  const stopStreaming = useCallback(() => {
+    socketRef.current?.stop();
+  }, []);
+
   return {
     messages,
     streamingContent,
     isStreaming,
     conversationId,
     sendMessage,
+    stopStreaming,
   };
 };

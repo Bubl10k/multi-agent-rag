@@ -5,6 +5,7 @@ import re
 import uuid
 from datetime import date, timedelta
 from typing import Annotated
+from urllib.parse import quote
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -281,8 +282,8 @@ Return ONLY the JSON, no explanation."""
                 currency=currency,
                 branding=branding,
             )
-            file_path = save_invoice_file(pdf_bytes, filename, self.storage_dir)
-            file_url = f"file://{file_path}"
+            s3_key = save_invoice_file(pdf_bytes, filename, self.storage_dir)
+            file_url = f"/api/invoices/download?key={quote(s3_key)}"
         except Exception as exc:
             logger.error("PDF generation failed: %s", exc)
 
@@ -293,8 +294,12 @@ Return ONLY the JSON, no explanation."""
             f"Total: {state.get('total', 0.0):.2f} {currency}\n"
             f"Due: {meta.get('due_date', 'N/A')}\n"
             f"File: {filename}\n"
-            + (f"Download URL: {file_url}\n" if file_url else "Note: PDF rendering was not available.\n")
-            + "\nInclude the invoice number, total, and download link (if available) in your message."
+            + (
+                f"Download link (format as markdown): [Download Invoice]({file_url})\n"
+                if file_url
+                else "Note: PDF rendering was not available.\n"
+            )
+            + "\nInclude the invoice number, total, and the download link formatted as a markdown link in your message."
         )
         if branding:
             content += f"\n\nCompany context: {branding[:400]}"

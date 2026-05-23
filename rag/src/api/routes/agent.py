@@ -62,13 +62,13 @@ async def delete_agent(agent_id: uuid.UUID, uow: UnitOfWorkDep, service: AgentSe
 
 @router.get("/{agent_id}/graph/json", response_model=AgentGraphJSON)
 async def get_agent_graph_json(agent_id: uuid.UUID, uow: UnitOfWorkDep, service: AgentStreamingServiceDep, _: UserDep):
-    graph = await service.build_graph(uow, agent_id)
+    graph, _ = await service.build_graph(uow, agent_id)
     return BaseAgentGraph.get_graph_json(graph)
 
 
 @router.get("/{agent_id}/graph/mermaid", response_model=AgentGraphMermaid)
 async def get_agent_graph_mermaid(agent_id: uuid.UUID, uow: UnitOfWorkDep, _: UserDep):
-    graph = await AgentStreamingService.build_graph(uow, agent_id)
+    graph, _ = await AgentStreamingService.build_graph(uow, agent_id)
     return AgentGraphMermaid(mermaid=BaseAgentGraph.get_graph_mermaid(graph))
 
 
