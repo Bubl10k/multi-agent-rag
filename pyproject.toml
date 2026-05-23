@@ -74,3 +74,11 @@ lint.select = [
 line-length = 120
 target-version = ['py313']
 include = '.pyi?$'
+extend-exclude = '''
+/(
+  \.git
+  | \.venv
+  | venv
+  | rag/src/db/alembic
+)/
+'''
