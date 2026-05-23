@@ -26,6 +26,12 @@ os.environ.setdefault("OPENAI_API_SECRET", "sk-test-openai-key")
 os.environ.setdefault("OPENAI_MODEL", "gpt-4o")
 os.environ.setdefault("EMBEDDING_MODEL", "text-embedding-3-small")
 os.environ.setdefault("TAVILY_API_KEY", "test-tavily-key")
+os.environ.setdefault("AWS_ACCESS_KEY_ID", "test-access-key")
+os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "test-secret-key")
+os.environ.setdefault("AWS_REGION", "us-east-1")
+os.environ.setdefault("S3_BUCKET", "test-bucket")
+os.environ.setdefault("OPENAI_PLATFORM_API_KEY", "sk-test-platform-openai-key")
+os.environ.setdefault("GOOGLE_PLATFORM_API_KEY", "test-platform-google-key")
 
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
