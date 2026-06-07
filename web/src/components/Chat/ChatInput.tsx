@@ -1,7 +1,9 @@
-import { type KeyboardEvent } from 'react';
+import { type KeyboardEvent, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Chip,
+  CircularProgress,
   IconButton,
   ListSubheader,
   MenuItem,
@@ -10,7 +12,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { ArrowUp, Square } from 'lucide-react';
+import { ArrowUp, Paperclip, Square, X } from 'lucide-react';
 import type { LLMRead } from '@/api/types/llm';
 import type { PlatformLLMRead } from '@/api/types/platform_llm';
 
@@ -25,6 +27,10 @@ type Props = {
   platformLlms?: PlatformLLMRead[];
   selectedLlmSelection?: string;
   onLlmChange?: (selection: string) => void;
+  attachedFileName?: string | null;
+  onAttach?: (file: File) => void;
+  onRemoveAttachment?: () => void;
+  isAttaching?: boolean;
 };
 
 const ChatInput = ({
@@ -32,13 +38,20 @@ const ChatInput = ({
   onChange,
   onSend,
   onStop,
-  placeholder = 'Message...',
+  placeholder,
   disabled = false,
   llms,
   platformLlms,
   selectedLlmSelection,
   onLlmChange,
+  attachedFileName,
+  onAttach,
+  onRemoveAttachment,
+  isAttaching = false,
 }: Props) => {
+  const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -46,7 +59,15 @@ const ChatInput = ({
     }
   };
 
-  const canSend = !!value.trim() && !disabled;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onAttach) {
+      onAttach(file);
+    }
+    e.target.value = '';
+  };
+
+  const canSend = (!!value.trim() || !!attachedFileName) && !disabled && !isAttaching;
   const hasLlmOptions = (llms && llms.length > 0) || (platformLlms && platformLlms.length > 0);
 
   return (
@@ -58,6 +79,13 @@ const ChatInput = ({
         flexShrink: 0,
       }}
     >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.txt,.md,.docx"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
       <Box
         sx={{
           maxWidth: 760,
@@ -92,7 +120,7 @@ const ChatInput = ({
             >
               {platformLlms && platformLlms.length > 0 && [
                 <ListSubheader key="platform-header" sx={{ fontSize: '0.7rem', lineHeight: '28px' }}>
-                  Platform Models (free)
+                  {t('chat.platformModels')}
                 </ListSubheader>,
                 ...platformLlms.map(llm => (
                   <MenuItem key={`platform:${llm.id}`} value={`platform:${llm.id}`} sx={{ fontSize: '0.8rem' }}>
@@ -110,7 +138,7 @@ const ChatInput = ({
               ]}
               {llms && llms.length > 0 && [
                 <ListSubheader key="user-header" sx={{ fontSize: '0.7rem', lineHeight: '28px' }}>
-                  Your Models
+                  {t('chat.yourModels')}
                 </ListSubheader>,
                 ...llms.map(llm => (
                   <MenuItem key={`user:${llm.id}`} value={`user:${llm.id}`} sx={{ fontSize: '0.8rem' }}>
@@ -120,11 +148,20 @@ const ChatInput = ({
               ]}
             </Select>
           )}
+          {attachedFileName && (
+            <Chip
+              size="small"
+              label={attachedFileName}
+              onDelete={onRemoveAttachment}
+              deleteIcon={<X size={12} />}
+              sx={{ alignSelf: 'flex-start', maxWidth: '100%', fontSize: '0.72rem' }}
+            />
+          )}
           <TextField
             fullWidth
             multiline
             maxRows={6}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t('chat.inputPlaceholder')}
             value={value}
             onChange={e => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -134,8 +171,22 @@ const ChatInput = ({
             sx={{ fontSize: '0.9rem' }}
           />
         </Box>
+        {onAttach && (
+          <Tooltip title={t('chat.attachFile')}>
+            <span>
+              <IconButton
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled || isAttaching}
+                size="small"
+                sx={{ flexShrink: 0, width: 32, height: 32 }}
+              >
+                {isAttaching ? <CircularProgress size={14} /> : <Paperclip size={16} />}
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
         {disabled && onStop ? (
-          <Tooltip title="Stop">
+          <Tooltip title={t('chat.stop')}>
             <IconButton
               onClick={onStop}
               size="small"
@@ -153,7 +204,7 @@ const ChatInput = ({
             </IconButton>
           </Tooltip>
         ) : (
-          <Tooltip title="Send (Enter)">
+          <Tooltip title={t('chat.sendEnter')}>
             <span>
               <IconButton
                 onClick={onSend}
@@ -185,7 +236,7 @@ const ChatInput = ({
           color: 'text.disabled',
         }}
       >
-        Press Enter to send · Shift+Enter for new line
+        {t('chat.sendHint')}
       </Typography>
     </Box>
   );

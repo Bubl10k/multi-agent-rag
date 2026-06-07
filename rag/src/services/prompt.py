@@ -21,10 +21,10 @@ class PromptService:
     def get(agent_type: AgentType) -> str:
         filename = _PROMPT_FILES.get(agent_type)
         if not filename:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prompt not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROMPT_NOT_FOUND")
         path = _PROMPTS_DIR / filename
         if not path.exists():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prompt file not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PROMPT_FILE_NOT_FOUND")
         return path.read_text(encoding="utf-8")
 
     @staticmethod

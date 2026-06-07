@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -41,30 +42,6 @@ import { agentFormSchema, parseLLMSelection, type AgentFormValues } from '@/vali
 import { AgentType, type AgentRead } from '@/api/types/agent.ts';
 import { useThemeMode } from '@/theme/ThemeContext.tsx';
 
-const AGENT_TYPE_LABELS: Record<AgentType, string> = {
-  [AgentType.GENERAL]: 'General',
-  [AgentType.PROGRAMMING]: 'Programming',
-  [AgentType.MATH]: 'Math',
-  [AgentType.RESEARCHER]: 'Researcher',
-  [AgentType.INVOICE]: 'Invoice',
-  [AgentType.ROUTER]: 'Router',
-};
-
-const AGENT_TYPE_DESCRIPTIONS: Record<AgentType, string> = {
-  [AgentType.GENERAL]:
-    'Uses a ReAct loop: the model reasons step-by-step and calls vector search on your attached collections whenever it needs context. Best for open-ended Q&A and document-grounded tasks.',
-  [AgentType.PROGRAMMING]:
-    'Runs a fixed pipeline: Plan → Write code → Execute in a sandbox → Review errors and retry → Explain result. ⚠️ Only Python is supported — the sandbox executes Python code exclusively.',
-  [AgentType.MATH]:
-    'Runs a structured pipeline: Parse problem → Clarify if ambiguous → Solve (with a SymPy expression for numeric verification) → Verify correctness → Retry up to 3 times if verification fails → Explain. Best for algebra, calculus, arithmetic, and statistics.',
-  [AgentType.RESEARCHER]:
-    'Runs a multi-round research pipeline: decompose the question into search queries → fetch results via Tavily web search → crawl top pages → synthesize an answer → add inline citations. Repeats up to 2 rounds if the draft answer flags missing information.',
-  [AgentType.INVOICE]:
-    'Runs a document pipeline: extract client info and line items from your message → ask for missing required fields → validate data → auto-fix errors → generate an invoice number and due date → render and save a PDF → return a download link.',
-  [AgentType.ROUTER]:
-    'Analyzes your message and automatically routes it to the most suitable sub-agent (General, Programming, Math, Researcher, or Invoice). Use this when you want a single agent that handles any type of request without choosing the agent yourself.',
-};
-
 type Props = {
   open: boolean;
   agent?: AgentRead;
@@ -79,8 +56,27 @@ function initialLLMSelection(agent?: AgentRead): string {
 }
 
 const AgentFormDialog = ({ open, agent, onClose }: Props) => {
+  const { t } = useTranslation();
   const isEdit = !!agent;
   const { mode } = useThemeMode();
+
+  const AGENT_TYPE_LABELS: Record<AgentType, string> = {
+    [AgentType.GENERAL]: t('dashboard.agentTypeLabels.general'),
+    [AgentType.PROGRAMMING]: t('dashboard.agentTypeLabels.programming'),
+    [AgentType.MATH]: t('dashboard.agentTypeLabels.math'),
+    [AgentType.RESEARCHER]: t('dashboard.agentTypeLabels.researcher'),
+    [AgentType.INVOICE]: t('dashboard.agentTypeLabels.invoice'),
+    [AgentType.ROUTER]: t('dashboard.agentTypeLabels.router'),
+  };
+
+  const AGENT_TYPE_DESCRIPTIONS: Record<AgentType, string> = {
+    [AgentType.GENERAL]: t('agents.descriptions.general'),
+    [AgentType.PROGRAMMING]: t('agents.descriptions.programming'),
+    [AgentType.MATH]: t('agents.descriptions.math'),
+    [AgentType.RESEARCHER]: t('agents.descriptions.researcher'),
+    [AgentType.INVOICE]: t('agents.descriptions.invoice'),
+    [AgentType.ROUTER]: t('agents.descriptions.router'),
+  };
   const [createAgent, { isLoading: isCreating }] = useCreateAgentMutation();
   const [updateAgent, { isLoading: isUpdating }] = useUpdateAgentMutation();
   const { data: defaultPrompts = [] } = useGetDefaultPromptsQuery();
@@ -143,12 +139,12 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ pb: 0 }}>
-        {isEdit ? 'Edit Agent' : 'Add Agent'}
+        {isEdit ? t('agents.form.titleEdit') : t('agents.form.titleAdd')}
       </DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
-            <FormTextField name="name" control={control} label="Name" />
+            <FormTextField name="name" control={control} label={t('agents.form.name')} />
 
             <Controller
               name="prompt"
@@ -172,7 +168,7 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
                           : 'text.secondary',
                       }}
                     >
-                      System Prompt
+                      {t('agents.form.systemPrompt')}
                     </Typography>
                     <Button
                       size="small"
@@ -184,7 +180,7 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
                         )
                       }
                     >
-                      Use default
+                      {t('agents.form.useDefault')}
                     </Button>
                   </Box>
                   <MDEditor
@@ -211,17 +207,17 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
               control={control}
               render={({ field, fieldState }) => (
                 <FormControl fullWidth error={!!fieldState.error}>
-                  <InputLabel>LLM Model</InputLabel>
-                  <Select {...field} label="LLM Model" disabled={isLlmLoading}>
+                  <InputLabel>{t('agents.form.llmModel')}</InputLabel>
+                  <Select {...field} label={t('agents.form.llmModel')} disabled={isLlmLoading}>
                     {isLlmLoading ? (
                       <MenuItem disabled>
-                        <CircularProgress size={16} sx={{ mr: 1 }} /> Loading…
+                        <CircularProgress size={16} sx={{ mr: 1 }} /> {t('common.loading')}
                       </MenuItem>
                     ) : (
                       [
                         platformLlms.length > 0 && (
                           <ListSubheader key="platform-header">
-                            Platform Models (free)
+                            {t('agents.form.platformModels')}
                           </ListSubheader>
                         ),
                         ...platformLlms.map(llm => (
@@ -239,7 +235,7 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
                         )),
                         llms.length > 0 && (
                           <ListSubheader key="user-header">
-                            Your Models
+                            {t('agents.form.yourModels')}
                           </ListSubheader>
                         ),
                         ...llms.map(llm => (
@@ -263,8 +259,8 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
               render={({ field, fieldState }) => (
                 <Box>
                   <FormControl fullWidth error={!!fieldState.error}>
-                    <InputLabel>Agent Type</InputLabel>
-                    <Select {...field} label="Agent Type">
+                    <InputLabel>{t('agents.table.type')}</InputLabel>
+                    <Select {...field} label={t('agents.table.type')}>
                       {Object.values(AgentType).map(type => (
                         <MenuItem key={type} value={type}>
                           {AGENT_TYPE_LABELS[type]}
@@ -308,7 +304,7 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
                   renderInput={params => (
                     <TextField
                       {...params}
-                      label="Collections"
+                      label={t('agents.table.collections')}
                       error={!!fieldState.error}
                       helperText={fieldState.error?.message}
                     />
@@ -325,7 +321,7 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
                   control={
                     <Switch checked={field.value} onChange={field.onChange} />
                   }
-                  label="Active"
+                  label={t('agents.form.active')}
                 />
               )}
             />
@@ -338,14 +334,14 @@ const AgentFormDialog = ({ open, agent, onClose }: Props) => {
             fullWidth
             sx={{ flex: 1 }}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <SubmitButton
             isLoading={isCreating || isUpdating}
             fullWidth
             sx={{ flex: 1, py: 1 }}
           >
-            {isEdit ? 'Save changes' : 'Add agent'}
+            {isEdit ? t('agents.form.saveChanges') : t('agents.addAgent')}
           </SubmitButton>
         </DialogActions>
       </form>

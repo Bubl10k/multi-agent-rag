@@ -51,6 +51,10 @@ class AgentService:
 
             collection_ids = data.collection_ids
             payload = data.model_dump(exclude_none=True, exclude={"collection_ids"})
+            if data.llm_id is not None:
+                payload["platform_llm_id"] = None
+            elif data.platform_llm_id is not None:
+                payload["llm_id"] = None
             agent = await uow.agent_repository.update_one(str(agent_id), payload)
 
             if collection_ids is not None:

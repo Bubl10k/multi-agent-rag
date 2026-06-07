@@ -1,10 +1,11 @@
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from rag.src.api.schemas.platform_llm import PlatformLLMRead
 from rag.src.common.settings import settings
+from rag.src.utils.exceptions import LocalizedHTTPException
 from rag.src.utils.unit_of_work import UnitOfWork
 
 _PROVIDER_MAP = {
@@ -48,9 +49,10 @@ class PlatformLLMService:
             requests_used = await uow.usage_record_repository.get_request_count(user_id, current_hour)
 
             if requests_used >= limit:
-                raise HTTPException(
+                raise LocalizedHTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=f"Hourly limit of {limit} requests reached. Try again next hour.",
+                    detail="PLATFORM_LLM_RATE_LIMITED",
+                    limit=str(limit),
                 )
 
             await uow.usage_record_repository.increment(user_id, current_hour)
@@ -63,9 +65,10 @@ class PlatformLLMService:
         }
         key = keys.get(provider, "")
         if not key:
-            raise HTTPException(
+            raise LocalizedHTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Platform API key for provider '{provider}' is not configured.",
+                detail="PLATFORM_LLM_KEY_MISSING",
+                provider=provider,
             )
         return key
 

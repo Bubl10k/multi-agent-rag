@@ -21,3 +21,8 @@ class SearchDocumentsResponse(BaseModel):
 class CollectionFilesResponse(BaseModel):
     collection: str
     files: list[str]
+
+
+class ParsedDocumentResponse(BaseModel):
+    filename: str
+    content: str

@@ -9,6 +9,7 @@ from rag.src.common import settings
 from rag.src.main import app
 from rag.src.models.user import UserManager
 from rag.src.services.auth import REFRESH_TOKEN_AUDIENCE
+from rag.src.utils.i18n import translate
 
 from rag.src.tests.helpers import USER_ID
 
@@ -63,7 +64,7 @@ class TestLogin:
         del app.dependency_overrides[UserManager.get_user_manager]
 
         assert response.status_code == 400
-        assert response.json()["detail"] == "LOGIN_BAD_CREDENTIALS"
+        assert response.json()["detail"] == translate("LOGIN_BAD_CREDENTIALS")
 
     @pytest.mark.asyncio
     async def test_login_inactive_user(self, async_client, mock_user):
@@ -141,7 +142,7 @@ class TestRefreshToken:
         del app.dependency_overrides[UserManager.get_user_manager]
 
         assert response.status_code == 401
-        assert response.json()["detail"] == "TOKEN_REUSE_DETECTED"
+        assert response.json()["detail"] == translate("TOKEN_REUSE_DETECTED")
 
 
 class TestLogout:

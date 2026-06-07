@@ -22,6 +22,9 @@ export const localStorageService = {
   setSidebarCollapsed: (value: boolean) => setItemToStorage('sidebarCollapsed', value),
   getSidebarCollapsed: () => getItemFromStorage('sidebarCollapsed'),
 
+  setLanguage: (value: string) => setItemToStorage('language', value),
+  getLanguage: (): string | null => getItemFromStorage('language'),
+
   setAuthToken: (token: string) => setItemToStorage('auth_token', token),
   getAuthToken: (): string | null => getItemFromStorage('auth_token'),
   removeAuthToken: () => localStorage.removeItem('auth_token'),

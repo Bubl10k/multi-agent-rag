@@ -24,7 +24,7 @@ class ConversationService:
         async with uow:
             conv = await uow.conversation_repository.get_one_or_404(id=conversation_id)
             if conv.user_id != user_id:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="ACCESS_DENIED")
             return ConversationRead.model_validate(conv)
 
     @staticmethod
@@ -32,7 +32,7 @@ class ConversationService:
         async with uow:
             conv = await uow.conversation_repository.get_one_or_404(id=conversation_id)
             if conv.user_id != user_id:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="ACCESS_DENIED")
             result = ConversationRead.model_validate(conv)
             await uow.message_repository.delete_by_conversation(str(conversation_id))
             await uow.conversation_repository.delete_one(str(conversation_id))

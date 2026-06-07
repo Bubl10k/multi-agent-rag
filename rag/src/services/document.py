@@ -1,16 +1,18 @@
 import logging
 
-from fastapi import HTTPException, UploadFile
+from fastapi import UploadFile, status
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from rag.src.api.schemas.documents import (
     CollectionFilesResponse,
     DocumentSearchResult,
+    ParsedDocumentResponse,
     SearchDocumentsResponse,
     UploadDocumentResponse,
 )
 from rag.src.db.vector_store import VectorStore
 from rag.src.repositories.vector_store import VectorStoreRepository
+from rag.src.utils.exceptions import LocalizedHTTPException
 from rag.src.utils.parsers import SUPPORTED_CONTENT_TYPES, extract_text
 
 logger = logging.getLogger(__name__)
@@ -28,9 +30,11 @@ class DocumentService:
 
         if file.content_type not in SUPPORTED_CONTENT_TYPES:
             logger.warning("Rejected unsupported file type '%s' (file=%s)", file.content_type, file.filename)
-            raise HTTPException(
+            raise LocalizedHTTPException(
                 status_code=415,
-                detail=f"Unsupported file type '{file.content_type}'. Supported: {sorted(SUPPORTED_CONTENT_TYPES)}",
+                detail="UNSUPPORTED_FILE_TYPE",
+                content_type=file.content_type,
+                supported=", ".join(sorted(SUPPORTED_CONTENT_TYPES)),
             )
 
         raw = await file.read()
@@ -60,6 +64,23 @@ class DocumentService:
                 for doc, score in results
             ],
         )
+
+    @staticmethod
+    async def parse_file(file: UploadFile) -> ParsedDocumentResponse:
+        logger.info("Parsing file '%s' (type=%s)", file.filename, file.content_type)
+
+        if file.content_type not in SUPPORTED_CONTENT_TYPES:
+            logger.warning("Rejected unsupported file type '%s' (file=%s)", file.content_type, file.filename)
+            raise LocalizedHTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail="UNSUPPORTED_FILE_TYPE",
+                content_type=file.content_type,
+                supported=", ".join(sorted(SUPPORTED_CONTENT_TYPES)),
+            )
+
+        raw = await file.read()
+        content = extract_text(raw, file.content_type)
+        return ParsedDocumentResponse(filename=file.filename, content=content)
 
     @staticmethod
     def get_collection_files(collection_name: str) -> CollectionFilesResponse:

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   CircularProgress,
@@ -30,6 +31,7 @@ type Props = {
 };
 
 const AgentGraphDialog = ({ agentId, agentName, open, onClose }: Props) => {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useGetAgentGraphJSONQuery(agentId, {
     skip: !open,
   });
@@ -98,7 +100,7 @@ const AgentGraphDialog = ({ agentId, agentName, open, onClose }: Props) => {
         }}
       >
         <Typography variant="h6" fontWeight={600}>
-          {agentName} — graph
+          {t('agents.graphDialog.title', { name: agentName })}
         </Typography>
         <IconButton size="small" onClick={onClose}>
           <X size={18} />
@@ -128,7 +130,7 @@ const AgentGraphDialog = ({ agentId, agentName, open, onClose }: Props) => {
               justifyContent: 'center',
             }}
           >
-            <Typography color="error">Failed to load graph.</Typography>
+            <Typography color="error">{t('agents.graphDialog.loadFailed')}</Typography>
           </Box>
         )}
 

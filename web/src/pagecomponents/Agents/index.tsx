@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
@@ -23,19 +24,21 @@ import {
   useGetAgentsQuery,
 } from '@/api/endpoints/agent';
 import { AgentType, type AgentRead } from '@/api/types/agent';
-
-const AGENT_TYPE_LABELS: Record<AgentType, string> = {
-  [AgentType.GENERAL]: 'General',
-  [AgentType.PROGRAMMING]: 'Programming',
-  [AgentType.MATH]: 'Math',
-  [AgentType.RESEARCHER]: 'Researcher',
-  [AgentType.INVOICE]: 'Invoice',
-  [AgentType.ROUTER]: 'Router',
-};
 import AgentFormDialog from './components/AgentFormDialog.tsx';
 import AgentGraphDialog from './components/AgentGraphDialog.tsx';
 
 const AgentsPage = () => {
+  const { t } = useTranslation();
+
+  const AGENT_TYPE_LABELS: Record<AgentType, string> = {
+    [AgentType.GENERAL]: t('dashboard.agentTypeLabels.general'),
+    [AgentType.PROGRAMMING]: t('dashboard.agentTypeLabels.programming'),
+    [AgentType.MATH]: t('dashboard.agentTypeLabels.math'),
+    [AgentType.RESEARCHER]: t('dashboard.agentTypeLabels.researcher'),
+    [AgentType.INVOICE]: t('dashboard.agentTypeLabels.invoice'),
+    [AgentType.ROUTER]: t('dashboard.agentTypeLabels.router'),
+  };
+
   const { data: agents = [], isLoading } = useGetAgentsQuery();
   const [deleteAgent] = useDeleteAgentMutation();
 
@@ -61,14 +64,14 @@ const AgentsPage = () => {
         }}
       >
         <Typography variant="h5" fontWeight={600}>
-          Agents
+          {t('agents.title')}
         </Typography>
         <Button
           variant="contained"
           startIcon={<Plus size={16} />}
           onClick={() => setAddOpen(true)}
         >
-          Add agent
+          {t('agents.addAgent')}
         </Button>
       </Box>
 
@@ -79,7 +82,7 @@ const AgentsPage = () => {
       ) : agents.length === 0 ? (
         <Box sx={{ py: 8, textAlign: 'center' }}>
           <Typography color="text.secondary">
-            No agents yet. Create one to start chatting.
+            {t('agents.noAgents')}
           </Typography>
         </Box>
       ) : (
@@ -87,12 +90,12 @@ const AgentsPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>LLM Model</TableCell>
-                <TableCell>Collections</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('agents.table.name')}</TableCell>
+                <TableCell>{t('agents.table.type')}</TableCell>
+                <TableCell>{t('agents.table.llmModel')}</TableCell>
+                <TableCell>{t('agents.table.collections')}</TableCell>
+                <TableCell>{t('agents.table.status')}</TableCell>
+                <TableCell align="right">{t('agents.table.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -136,14 +139,14 @@ const AgentsPage = () => {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={agent.is_active ? 'Active' : 'Inactive'}
+                      label={agent.is_active ? t('agents.active') : t('agents.inactive')}
                       color={agent.is_active ? 'success' : 'default'}
                       size="small"
                       variant="outlined"
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title="View graph">
+                    <Tooltip title={t('agents.viewGraph')}>
                       <IconButton
                         size="small"
                         onClick={() => setGraphAgent(agent)}
@@ -152,7 +155,7 @@ const AgentsPage = () => {
                         <Network size={15} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Edit">
+                    <Tooltip title={t('common.edit')}>
                       <IconButton
                         size="small"
                         onClick={() => setEditingAgent(agent)}
@@ -161,7 +164,7 @@ const AgentsPage = () => {
                         <Pencil size={15} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('common.delete')}>
                       <IconButton
                         size="small"
                         onClick={() => setDeletingAgent(agent)}
@@ -188,10 +191,10 @@ const AgentsPage = () => {
 
       <ConfirmDialog
         open={!!deletingAgent}
-        title="Delete agent"
-        description={`"${deletingAgent?.name}" will be permanently deleted.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('agents.deleteConfirmTitle')}
+        description={t('agents.deleteConfirmDescription', { name: deletingAgent?.name })}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeletingAgent(null)}
       />

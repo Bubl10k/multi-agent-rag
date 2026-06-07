@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
@@ -28,6 +29,7 @@ type Props = {
 };
 
 const CollectionFilesDialog = ({ open, collection, onClose }: Props) => {
+  const { t } = useTranslation();
   const [uploadDocument, { isLoading: isUploading }] =
     useUploadDocumentMutation();
   const [dragOver, setDragOver] = useState(false);
@@ -53,7 +55,9 @@ const CollectionFilesDialog = ({ open, collection, onClose }: Props) => {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ pb: 1 }}>Files — {collection?.name}</DialogTitle>
+      <DialogTitle sx={{ pb: 1 }}>
+        {t('collections.filesDialog.title', { name: collection?.name })}
+      </DialogTitle>
       <DialogContent>
         <Box
           onDragOver={e => {
@@ -88,7 +92,7 @@ const CollectionFilesDialog = ({ open, collection, onClose }: Props) => {
             <>
               <FileUp size={28} style={{ opacity: 0.5 }} />
               <Typography variant="body2" color="text.secondary" mt={1}>
-                Click or drag files here to upload
+                {t('collections.filesDialog.uploadHint')}
               </Typography>
             </>
           )}
@@ -97,7 +101,7 @@ const CollectionFilesDialog = ({ open, collection, onClose }: Props) => {
         <Box mt={2}>
           <Divider sx={{ mb: 1.5 }} />
           <Typography variant="caption" color="text.secondary" fontWeight={600}>
-            FILES IN COLLECTION
+            {t('collections.filesDialog.filesInCollection').toUpperCase()}
           </Typography>
           {isLoadingFiles ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
@@ -105,7 +109,7 @@ const CollectionFilesDialog = ({ open, collection, onClose }: Props) => {
             </Box>
           ) : !data?.files.length ? (
             <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-              No files uploaded yet.
+              {t('collections.filesDialog.noFiles')}
             </Typography>
           ) : (
             <List dense disablePadding>
@@ -123,7 +127,7 @@ const CollectionFilesDialog = ({ open, collection, onClose }: Props) => {
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
         <Button onClick={onClose} variant="outlined" fullWidth>
-          Close
+          {t('collections.filesDialog.close')}
         </Button>
       </DialogActions>
     </Dialog>

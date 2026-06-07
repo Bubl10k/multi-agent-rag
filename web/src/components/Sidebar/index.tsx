@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Avatar,
   Box,
@@ -15,6 +16,7 @@ import {
 } from '@mui/material';
 import {
   Bot,
+  Languages,
   LogOut,
   MessageSquare,
   Moon,
@@ -26,7 +28,9 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 
+import { changeLanguage } from '@/i18n';
 import { useThemeMode } from '@/theme/ThemeContext';
+import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, Language } from '@/types/i18n';
 import { localStorageService } from '@/utils/localStorage';
 import { useAppSelector } from '@/store';
 import { useActions } from '@/hooks/useActions';
@@ -51,12 +55,14 @@ const ICON_BTN_SX = {
 } as const;
 
 const Sidebar = () => {
+  const { t, i18n } = useTranslation();
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorageService.getSidebarCollapsed() ?? false,
   );
   const { mode, toggleTheme } = useThemeMode();
   const { logout } = useActions();
   const navigate = useNavigate();
+  const [languageMenuAnchor, setLanguageMenuAnchor] = useState<HTMLElement | null>(null);
 
   const [searchParams] = useSearchParams();
   const user = useAppSelector(state => state.auth.user);
@@ -112,6 +118,17 @@ const Sidebar = () => {
     localStorageService.setSidebarCollapsed(next);
   };
 
+  const handleLanguageMenuOpen = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setLanguageMenuAnchor(e.currentTarget);
+  };
+
+  const handleLanguageMenuClose = () => setLanguageMenuAnchor(null);
+
+  const handleLanguageSelect = (language: Language) => {
+    changeLanguage(language);
+    handleLanguageMenuClose();
+  };
+
   const grouped = groupConversationsByDate(conversations);
 
   return (
@@ -138,7 +155,7 @@ const Sidebar = () => {
         }}
       >
         <Tooltip
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
           placement="right"
         >
           <IconButton
@@ -165,11 +182,11 @@ const Sidebar = () => {
         }}
       >
         {/* Agents */}
-        {!collapsed && <SectionLabel>Agents</SectionLabel>}
+        {!collapsed && <SectionLabel>{t('sidebar.agents')}</SectionLabel>}
         <List disablePadding sx={{ mb: 1 }}>
           {agentsLoading ? (
             <Box sx={{ px: 1.5, py: 1 }}>
-              <Typography variant="caption" color="text.disabled">Loading…</Typography>
+              <Typography variant="caption" color="text.disabled">{t('common.loading')}</Typography>
             </Box>
           ) : agents.map(agent =>
             collapsed ? (
@@ -200,10 +217,10 @@ const Sidebar = () => {
         <Divider sx={{ mx: collapsed ? 0 : 0.5, mb: 1 }} />
 
         {/* Conversation history */}
-        {!collapsed && <SectionLabel>Conversation History</SectionLabel>}
+        {!collapsed && <SectionLabel>{t('sidebar.conversationHistory')}</SectionLabel>}
         {conversationsLoading ? (
           <Box sx={{ px: 1.5, py: 1 }}>
-            <Typography variant="caption" color="text.disabled">Loading…</Typography>
+            <Typography variant="caption" color="text.disabled">{t('common.loading')}</Typography>
           </Box>
         ) : collapsed ? (
           <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
@@ -223,7 +240,7 @@ const Sidebar = () => {
           !collapsed && (
             <Box sx={{ px: 1.5, py: 1 }}>
               <Typography variant="caption" color="text.disabled">
-                No conversations yet. Pick an agent above to start chatting.
+                {t('sidebar.noConversations')}
               </Typography>
             </Box>
           )
@@ -279,17 +296,18 @@ const Sidebar = () => {
           alignItems: collapsed ? 'center' : 'stretch',
         }}
       >
-        {ACTION_BUTTONS.map(({ label, Icon, path }) => {
+        {ACTION_BUTTONS.map(({ labelKey, Icon, path }) => {
+          const label = t(labelKey);
           const handleClick = path ? () => navigate(path) : undefined;
           return collapsed ? (
-            <Tooltip key={label} title={label} placement="right">
+            <Tooltip key={labelKey} title={label} placement="right">
               <IconButton size="small" onClick={handleClick} sx={{ ...ICON_BTN_SX, border: 'none' }}>
                 <Icon size={16} />
               </IconButton>
             </Tooltip>
           ) : (
             <Box
-              key={label}
+              key={labelKey}
               component="button"
               onClick={handleClick}
               sx={{
@@ -339,7 +357,7 @@ const Sidebar = () => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
-          <Tooltip title={collapsed ? (user?.email ?? 'Guest') : ''} placement="right">
+          <Tooltip title={collapsed ? (user?.email ?? t('sidebar.guest')) : ''} placement="right">
             <Avatar
               sx={{
                 width: 32,
@@ -356,18 +374,23 @@ const Sidebar = () => {
           </Tooltip>
           {!collapsed && (
             <Typography noWrap sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.primary' }}>
-              {user?.email ?? 'Guest'}
+              {user?.email ?? t('sidebar.guest')}
             </Typography>
           )}
         </Box>
 
         <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-          <Tooltip title={mode === 'light' ? 'Dark mode' : 'Light mode'} placement="right">
+          <Tooltip title={t('language.label')} placement="right">
+            <IconButton onClick={handleLanguageMenuOpen} size="small">
+              <Languages size={16} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={mode === 'light' ? t('theme.dark') : t('theme.light')} placement="right">
             <IconButton onClick={toggleTheme} size="small">
               {mode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </IconButton>
           </Tooltip>
-          <Tooltip title="Sign out" placement="right">
+          <Tooltip title={t('sidebar.signOut')} placement="right">
             <IconButton onClick={() => setLogoutDialogOpen(true)} size="small">
               <LogOut size={16} />
             </IconButton>
@@ -385,26 +408,43 @@ const Sidebar = () => {
           <ListItemIcon sx={{ color: 'inherit', minWidth: 'unset' }}>
             <Trash2 size={14} />
           </ListItemIcon>
-          Delete
+          {t('common.delete')}
         </MenuItem>
+      </Menu>
+
+      <Menu
+        anchorEl={languageMenuAnchor}
+        open={!!languageMenuAnchor}
+        onClose={handleLanguageMenuClose}
+        slotProps={{ paper: { sx: { minWidth: 160 } } }}
+      >
+        {Object.values(Language).map(language => (
+          <MenuItem
+            key={language}
+            selected={i18n.language === language}
+            onClick={() => handleLanguageSelect(language)}
+          >
+            {LANGUAGE_NAMES[language] ?? LANGUAGE_NAMES[DEFAULT_LANGUAGE]}
+          </MenuItem>
+        ))}
       </Menu>
 
       <ConfirmDialog
         open={logoutDialogOpen}
-        title="Sign out"
-        description="Are you sure you want to sign out?"
-        confirmLabel="Sign out"
-        cancelLabel="Cancel"
+        title={t('sidebar.signOutConfirmTitle')}
+        description={t('sidebar.signOutConfirmDescription')}
+        confirmLabel={t('sidebar.signOut')}
+        cancelLabel={t('common.cancel')}
         onConfirm={handleLogoutConfirm}
         onCancel={() => setLogoutDialogOpen(false)}
       />
 
       <ConfirmDialog
         open={!!deletingConversation}
-        title="Delete conversation"
-        description="This conversation and all its messages will be permanently deleted."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('sidebar.deleteConversationTitle')}
+        description={t('sidebar.deleteConversationDescription')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeletingConversation(null)}
       />

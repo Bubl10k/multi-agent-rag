@@ -1,0 +1,13 @@
+{
+  "LOGIN_BAD_CREDENTIALS": "Invalid email or password",
+  "INVALID_REFRESH_TOKEN": "Invalid refresh token",
+  "USER_INACTIVE": "This account is inactive",
+  "TOKEN_REUSE_DETECTED": "Refresh token reuse detected. Please log in again",
+  "ACCESS_DENIED": "Access denied",
+  "INVOICE_NOT_FOUND": "Invoice not found",
+  "PROMPT_NOT_FOUND": "Prompt not found",
+  "PROMPT_FILE_NOT_FOUND": "Prompt file not found",
+  "UNSUPPORTED_FILE_TYPE": "Unsupported file type '{content_type}'. Supported: {supported}",
+  "PLATFORM_LLM_RATE_LIMITED": "Hourly limit of {limit} requests reached. Try again next hour",
+  "PLATFORM_LLM_KEY_MISSING": "Platform API key for provider '{provider}' is not configured"
+}

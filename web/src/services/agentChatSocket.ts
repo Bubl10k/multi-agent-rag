@@ -42,6 +42,7 @@ export class AgentChatSocket {
     agentId: string,
     token: string,
     callbacks: AgentChatSocketCallbacks,
+    connectionErrorMessage = 'Connection error',
   ) {
     this.ws = new WebSocket(buildWsUrl(agentId, token));
 
@@ -53,10 +54,10 @@ export class AgentChatSocket {
       else callbacks.onError(parsed.message);
     };
 
-    this.ws.onerror = () => callbacks.onError('Connection error');
+    this.ws.onerror = () => callbacks.onError(connectionErrorMessage);
   }
 
-  send(message: string, conversationId: string | null): void {
+  send(message: string, conversationId: string | null, language?: string): void {
     if (this.ws.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -64,6 +65,7 @@ export class AgentChatSocket {
       JSON.stringify({
         message,
         ...(conversationId ? { conversation_id: conversationId } : {}),
+        ...(language ? { language } : {}),
       }),
     );
   }

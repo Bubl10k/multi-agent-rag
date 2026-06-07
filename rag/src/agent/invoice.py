@@ -4,22 +4,28 @@ import logging
 import re
 import uuid
 from datetime import date, timedelta
-from typing import Annotated
 from urllib.parse import quote
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, StateGraph
-from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
-from typing_extensions import TypedDict
 
 from rag.src.agent.base import BaseAgentGraph
 from rag.src.agent.enums import InvoiceNode
+from rag.src.agent.schemes import (
+    ExtractDetailsOutput,
+    FixItemsOutput,
+    FormatInvoiceOutput,
+    GenerateInvoiceOutput,
+    ValidateOutput,
+)
+from rag.src.agent.states import InvoiceState
 from rag.src.agent.tools.invoice_tools import calculate_totals, render_invoice_pdf, save_invoice_file
 from rag.src.agent.tools.vector_search import make_vector_search_tool
+from rag.src.agent.types import AgentType
 
 logger = logging.getLogger(__name__)
 
@@ -28,25 +34,6 @@ _REQUIRED_FIELDS = [
     "line_items (at least one with description and price)",
     "invoice_meta.issue_date",
 ]
-
-
-class InvoiceState(TypedDict):
-    messages: Annotated[list[BaseMessage], add_messages]
-    client_info: dict
-    line_items: list[dict]
-    invoice_meta: dict
-    tax_rate: float
-    subtotal: float
-    tax_amount: float
-    total: float
-    is_complete: bool
-    is_valid: bool
-    missing_fields: list[str]
-    validation_errors: list[str]
-    retry_count: int
-    max_retries: int
-    invoice_file_url: str | None
-    invoice_file_name: str | None
 
 
 class InvoiceAgentGraph(BaseAgentGraph):
@@ -58,7 +45,7 @@ class InvoiceAgentGraph(BaseAgentGraph):
         agent_config: dict,
     ) -> None:
         self.llm = llm
-        self.system_msg = SystemMessage(content=prompt)
+        self.prompt = prompt
         self.default_currency: str = agent_config.get("default_currency", "USD")
         self.default_tax_rate: float = float(agent_config.get("default_tax_rate", 0.0))
         self.invoice_prefix: str = agent_config.get("invoice_number_prefix", "INV-")
@@ -66,6 +53,7 @@ class InvoiceAgentGraph(BaseAgentGraph):
         self.max_retries: int = int(agent_config.get("max_retries", 2))
         self.storage_dir: str = agent_config.get("storage_bucket", "/tmp/invoices")
         self.search_tools: list[StructuredTool] = [make_vector_search_tool(name) for name in collection_names]
+        self._prompts = self.get_all_nodes(AgentType.INVOICE)
 
     async def _gather_context(self, query: str) -> str:
         if not self.search_tools:
@@ -99,28 +87,18 @@ class InvoiceAgentGraph(BaseAgentGraph):
         if user_msgs:
             context = await self._gather_context(str(user_msgs[-1].content))
 
-        content = f"""Extract invoice details from this conversation and return a JSON object.
+        context_section = f"\n\nKnowledge base context (client/product templates):\n{context}" if context else ""
+        content = self._render_prompt(
+            self._prompts["extract_details"],
+            conversation=conversation,
+            default_currency=self.default_currency,
+            default_tax_rate=self.default_tax_rate,
+            context_section=context_section,
+        )
 
-Conversation:
-{conversation}
-
-Return this exact JSON structure (null for missing optional fields, empty list for no items):
-{{
-  "client_info": {{"name": null, "address": null, "email": null, "tax_id": null}},
-  "line_items": [{{"description": "string", "qty": 1, "unit_price": 0.0}}],
-  "invoice_meta": {{"invoice_number": null, "issue_date": null, "due_date": null, "currency": "{self.default_currency}"}},
-  "tax_rate": {self.default_tax_rate},
-  "is_complete": false,
-  "missing_fields": ["list required fields that are missing"]
-}}
-
-is_complete is true only when: client_info.name is set, line_items has at least one item with description and unit_price > 0, and invoice_meta.issue_date is set.
-Return ONLY the JSON, no explanation."""
-
-        if context:
-            content += f"\n\nKnowledge base context (client/product templates):\n{context}"
-
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
 
         try:
@@ -129,29 +107,29 @@ Return ONLY the JSON, no explanation."""
             logger.warning("Failed to parse extraction JSON: %s", text[:200])
             data = {}
 
-        return {
-            "client_info": data.get("client_info") or {},
-            "line_items": data.get("line_items") or [],
-            "invoice_meta": data.get("invoice_meta") or {},
-            "tax_rate": float(data.get("tax_rate") or self.default_tax_rate),
-            "is_complete": bool(data.get("is_complete", False)),
-            "missing_fields": data.get("missing_fields") or _REQUIRED_FIELDS,
-            "retry_count": 0,
-            "max_retries": self.max_retries,
-            "validation_errors": [],
-        }
+        return ExtractDetailsOutput(
+            client_info=data.get("client_info") or {},
+            line_items=data.get("line_items") or [],
+            invoice_meta=data.get("invoice_meta") or {},
+            tax_rate=float(data.get("tax_rate") or self.default_tax_rate),
+            is_complete=bool(data.get("is_complete", False)),
+            missing_fields=data.get("missing_fields") or _REQUIRED_FIELDS,
+            retry_count=0,
+            max_retries=self.max_retries,
+            validation_errors=[],
+        ).model_dump()
 
     async def request_info(self, state: InvoiceState) -> dict:
         missing = state.get("missing_fields") or _REQUIRED_FIELDS
         missing_bullets = "\n".join(f"- {f}" for f in missing)
 
-        content = (
-            f"You are helping a user create an invoice. The following required information is missing:\n\n"
-            f"{missing_bullets}\n\n"
-            f"Ask the user to provide these details in a friendly, concise way. "
-            f"Explain why each piece is needed if not obvious."
+        content = self._render_prompt(
+            self._prompts["request_info"],
+            missing_bullets=missing_bullets,
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
         return {"messages": [AIMessage(content=text)]}
 
@@ -194,14 +172,14 @@ Return ONLY the JSON, no explanation."""
                 errors.append("issue_date must be YYYY-MM-DD format")
 
         totals = calculate_totals(line_items, state.get("tax_rate") or 0.0)
-        return {
-            "line_items": totals["line_items"],
-            "subtotal": totals["subtotal"],
-            "tax_amount": totals["tax_amount"],
-            "total": totals["total"],
-            "is_valid": len(errors) == 0,
-            "validation_errors": errors,
-        }
+        return ValidateOutput(
+            line_items=totals["line_items"],
+            subtotal=totals["subtotal"],
+            tax_amount=totals["tax_amount"],
+            total=totals["total"],
+            is_valid=len(errors) == 0,
+            validation_errors=errors,
+        ).model_dump()
 
     async def fix_items(self, state: InvoiceState) -> dict:
         errors = state.get("validation_errors") or []
@@ -214,13 +192,14 @@ Return ONLY the JSON, no explanation."""
             "tax_rate": state.get("tax_rate") or 0.0,
         }
 
-        content = (
-            f"Fix the invoice data to resolve these validation errors:\n\n"
-            f"Errors:\n{errors_text}\n\n"
-            f"Current data:\n{json.dumps(current, indent=2)}\n\n"
-            f"Return the corrected JSON with the same top-level keys. Return ONLY the JSON."
+        content = self._render_prompt(
+            self._prompts["fix_items"],
+            errors_text=errors_text,
+            current_json=json.dumps(current, indent=2),
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
 
         try:
@@ -229,13 +208,13 @@ Return ONLY the JSON, no explanation."""
             logger.warning("Failed to parse fix_items JSON, retaining current state")
             data = {}
 
-        return {
-            "client_info": data.get("client_info") or state.get("client_info") or {},
-            "line_items": data.get("line_items") or state.get("line_items") or [],
-            "invoice_meta": data.get("invoice_meta") or state.get("invoice_meta") or {},
-            "tax_rate": float(data.get("tax_rate") or state.get("tax_rate") or 0.0),
-            "retry_count": (state.get("retry_count") or 0) + 1,
-        }
+        return FixItemsOutput(
+            client_info=data.get("client_info") or state.get("client_info") or {},
+            line_items=data.get("line_items") or state.get("line_items") or [],
+            invoice_meta=data.get("invoice_meta") or state.get("invoice_meta") or {},
+            tax_rate=float(data.get("tax_rate") or state.get("tax_rate") or 0.0),
+            retry_count=(state.get("retry_count") or 0) + 1,
+        ).model_dump()
 
     async def generate_invoice(self, state: InvoiceState) -> dict:
         meta = dict(state.get("invoice_meta") or {})
@@ -257,7 +236,7 @@ Return ONLY the JSON, no explanation."""
         if not meta.get("currency"):
             meta["currency"] = self.default_currency
 
-        return {"invoice_meta": meta}
+        return GenerateInvoiceOutput(invoice_meta=meta).model_dump()
 
     async def format_output(self, state: InvoiceState) -> dict:
         branding = await self._gather_context("company payment terms invoice branding template")
@@ -287,29 +266,33 @@ Return ONLY the JSON, no explanation."""
         except Exception as exc:
             logger.error("PDF generation failed: %s", exc)
 
-        content = (
-            f"The invoice has been generated. Write a brief, professional confirmation.\n\n"
-            f"Invoice #: {invoice_num}\n"
-            f"Client: {client_name}\n"
-            f"Total: {state.get('total', 0.0):.2f} {currency}\n"
-            f"Due: {meta.get('due_date', 'N/A')}\n"
-            f"File: {filename}\n"
-            + (
-                f"Download link (format as markdown): [Download Invoice]({file_url})\n"
-                if file_url
-                else "Note: PDF rendering was not available.\n"
-            )
-            + "\nInclude the invoice number, total, and the download link formatted as a markdown link in your message."
+        download_section = (
+            f"Download link (format as markdown): [Download Invoice]({file_url})\n"
+            if file_url
+            else "Note: PDF rendering was not available.\n"
         )
-        if branding:
-            content += f"\n\nCompany context: {branding[:400]}"
+        branding_section = f"\n\nCompany context: {branding[:400]}" if branding else ""
+        content = self._render_prompt(
+            self._prompts["format_output"],
+            invoice_num=invoice_num,
+            client_name=client_name,
+            total=f"{state.get('total', 0.0):.2f}",
+            currency=currency,
+            due_date=meta.get("due_date", "N/A"),
+            filename=filename,
+            download_section=download_section,
+            branding_section=branding_section,
+        )
 
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
-
         return {
-            "invoice_file_url": file_url or None,
-            "invoice_file_name": filename,
+            **FormatInvoiceOutput(
+                invoice_file_url=file_url or None,
+                invoice_file_name=filename,
+            ).model_dump(),
             "messages": [AIMessage(content=text)],
         }
 

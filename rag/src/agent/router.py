@@ -1,14 +1,10 @@
 import logging
-from typing import Annotated
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, SystemMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, StateGraph
-from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
-from typing_extensions import TypedDict
 
 from rag.src.agent.base import BaseAgentGraph
 from rag.src.agent.enums import RouterNode
@@ -16,6 +12,7 @@ from rag.src.agent.invoice import InvoiceAgentGraph
 from rag.src.agent.math import MathAgentGraph
 from rag.src.agent.programming import ProgrammingAgentGraph
 from rag.src.agent.researcher import ResearcherAgentGraph
+from rag.src.agent.states import RouterState
 from rag.src.agent.types import AgentType
 
 logger = logging.getLogger(__name__)
@@ -34,11 +31,6 @@ class RouterDecision(BaseModel):
     reasoning: str
 
 
-class RouterState(TypedDict):
-    messages: Annotated[list[BaseMessage], add_messages]
-    selected_agent: str
-
-
 class RouterAgentGraph(BaseAgentGraph):
     def __init__(
         self,
@@ -49,7 +41,7 @@ class RouterAgentGraph(BaseAgentGraph):
         agent_config: dict,
     ) -> None:
         self.llm = llm
-        self.system_msg = SystemMessage(content=prompt)
+        self.prompt = prompt
         self.collection_names = collection_names
         self.checkpointer = checkpointer
         self.agent_config = agent_config
@@ -74,7 +66,9 @@ class RouterAgentGraph(BaseAgentGraph):
 
     async def route(self, state: RouterState) -> dict:
         structured_llm = self.llm.with_structured_output(RouterDecision)
-        result: RouterDecision = await structured_llm.ainvoke([self.system_msg] + list(state["messages"]))
+        result: RouterDecision = await structured_llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language"))] + list(state["messages"])
+        )
         logger.info("Router selected: %s (%s)", result.agent_type, result.reasoning)
         return {"selected_agent": result.agent_type}
 

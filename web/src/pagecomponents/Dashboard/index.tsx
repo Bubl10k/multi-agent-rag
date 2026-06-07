@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { Brain, Bot, FolderOpen, MessageSquare } from 'lucide-react';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { useGetAgentsQuery } from '@/api/endpoints/agent';
@@ -43,15 +44,6 @@ ChartJS.register(
   ChartTooltip,
   Legend,
 );
-
-const AGENT_TYPE_LABELS: Record<AgentType, string> = {
-  [AgentType.GENERAL]: 'General',
-  [AgentType.PROGRAMMING]: 'Programming',
-  [AgentType.MATH]: 'Math',
-  [AgentType.RESEARCHER]: 'Researcher',
-  [AgentType.INVOICE]: 'Invoice',
-  [AgentType.ROUTER]: 'Router',
-};
 
 const CHART_COLORS = [
   '#7c3aed',
@@ -108,8 +100,18 @@ const StatCard = ({ label, value, sub, icon, color }: StatCardProps) => (
 );
 
 const DashboardPage = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const theme = useTheme();
+
+  const AGENT_TYPE_LABELS: Record<AgentType, string> = {
+    [AgentType.GENERAL]: t('dashboard.agentTypeLabels.general'),
+    [AgentType.PROGRAMMING]: t('dashboard.agentTypeLabels.programming'),
+    [AgentType.MATH]: t('dashboard.agentTypeLabels.math'),
+    [AgentType.RESEARCHER]: t('dashboard.agentTypeLabels.researcher'),
+    [AgentType.INVOICE]: t('dashboard.agentTypeLabels.invoice'),
+    [AgentType.ROUTER]: t('dashboard.agentTypeLabels.router'),
+  };
 
   const { data: agents = [], isLoading: agentsLoading } = useGetAgentsQuery();
   const { data: llms = [], isLoading: llmsLoading } = useGetLLMsQuery();
@@ -169,7 +171,7 @@ const DashboardPage = () => {
     labels: agentUsage.map(e => e.agent.name),
     datasets: [
       {
-        label: 'Conversations',
+        label: t('dashboard.conversations'),
         data: agentUsage.map(e => e.count),
         backgroundColor: agentUsage.map(
           (_, i) => CHART_COLORS[i % CHART_COLORS.length] + 'cc',
@@ -192,7 +194,7 @@ const DashboardPage = () => {
         callbacks: {
           label: (ctx: { parsed: { y: number | null } }) => {
             const v = ctx.parsed.y ?? 0;
-            return ` ${v} conversation${v !== 1 ? 's' : ''}`;
+            return ` ${t('dashboard.conversationCount', { count: v })}`;
           },
         },
       },
@@ -256,7 +258,7 @@ const DashboardPage = () => {
   return (
     <Box sx={{ p: 3, maxWidth: 1250, mx: 'auto' }}>
       <Typography variant="h5" fontWeight={600} mb={3}>
-        Dashboard
+        {t('dashboard.title')}
       </Typography>
 
       {isLoading ? (
@@ -268,27 +270,27 @@ const DashboardPage = () => {
           {/* Stat cards */}
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 4 }}>
             <StatCard
-              label="Agents"
+              label={t('dashboard.statCards.agents')}
               value={agents.length}
-              sub={`${activeAgents} active`}
+              sub={t('dashboard.active', { count: activeAgents })}
               icon={<Bot size={20} />}
               color="#7c3aed"
             />
             <StatCard
-              label="LLM Models"
+              label={t('dashboard.statCards.llmModels')}
               value={llms.length}
-              sub={`${activeLLMs} active`}
+              sub={t('dashboard.active', { count: activeLLMs })}
               icon={<Brain size={20} />}
               color="#0ea5e9"
             />
             <StatCard
-              label="Collections"
+              label={t('dashboard.statCards.collections')}
               value={collections.length}
               icon={<FolderOpen size={20} />}
               color="#10b981"
             />
             <StatCard
-              label="Conversations"
+              label={t('dashboard.statCards.conversations')}
               value={conversations.length}
               icon={<MessageSquare size={20} />}
               color="#f59e0b"
@@ -309,12 +311,12 @@ const DashboardPage = () => {
             <Card variant="outlined" sx={{ flex: 2, minWidth: 320 }}>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight={600} mb={2}>
-                  Agents Usage
+                  {t('dashboard.agentsUsage')}
                 </Typography>
                 {agentUsage.length === 0 ? (
                   <Box sx={{ py: 4, textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      No agents yet.
+                      {t('dashboard.noAgents')}
                     </Typography>
                   </Box>
                 ) : (
@@ -329,12 +331,12 @@ const DashboardPage = () => {
             <Card variant="outlined" sx={{ flex: 1, minWidth: 220 }}>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight={600} mb={2}>
-                  API Keys Usage
+                  {t('dashboard.apiKeysUsage')}
                 </Typography>
                 {llmUsage.length === 0 ? (
                   <Box sx={{ py: 4, textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      No LLM models yet.
+                      {t('dashboard.noLlmModels')}
                     </Typography>
                   </Box>
                 ) : (
@@ -349,12 +351,12 @@ const DashboardPage = () => {
             <Card variant="outlined" sx={{ flex: 1, minWidth: 220 }}>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight={600} mb={2}>
-                  Agent Types
+                  {t('dashboard.agentTypes')}
                 </Typography>
                 {agentTypeBreakdown.length === 0 ? (
                   <Box sx={{ py: 4, textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      No agents yet.
+                      {t('dashboard.noAgents')}
                     </Typography>
                   </Box>
                 ) : (
@@ -383,12 +385,12 @@ const DashboardPage = () => {
 
           {/* Recent conversations */}
           <Typography variant="subtitle1" fontWeight={600} mb={1.5}>
-            Recent Conversations
+            {t('dashboard.recentConversations')}
           </Typography>
           {recentConversations.length === 0 ? (
             <Box component={Paper} variant="outlined" sx={{ py: 5, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                No conversations yet.
+                {t('dashboard.noConversations')}
               </Typography>
             </Box>
           ) : (
@@ -396,10 +398,10 @@ const DashboardPage = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Preview</TableCell>
-                    <TableCell>Agent</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Date</TableCell>
+                    <TableCell>{t('dashboard.table.preview')}</TableCell>
+                    <TableCell>{t('dashboard.table.agent')}</TableCell>
+                    <TableCell>{t('dashboard.table.type')}</TableCell>
+                    <TableCell>{t('dashboard.table.date')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -441,7 +443,7 @@ const DashboardPage = () => {
                         <TableCell sx={{ whiteSpace: 'nowrap' }}>
                           <Typography variant="caption" color="text.disabled">
                             {new Date(conv.created_at).toLocaleDateString(
-                              undefined,
+                              i18n.language,
                               { month: 'short', day: 'numeric', year: 'numeric' },
                             )}
                           </Typography>

@@ -1,0 +1,13 @@
+{
+  "LOGIN_BAD_CREDENTIALS": "Невірна електронна пошта або пароль",
+  "INVALID_REFRESH_TOKEN": "Недійсний токен оновлення",
+  "USER_INACTIVE": "Цей обліковий запис деактивовано",
+  "TOKEN_REUSE_DETECTED": "Виявлено повторне використання токена оновлення. Будь ласка, увійдіть знову",
+  "ACCESS_DENIED": "Доступ заборонено",
+  "INVOICE_NOT_FOUND": "Рахунок не знайдено",
+  "PROMPT_NOT_FOUND": "Промпт не знайдено",
+  "PROMPT_FILE_NOT_FOUND": "Файл промпту не знайдено",
+  "UNSUPPORTED_FILE_TYPE": "Непідтримуваний тип файлу '{content_type}'. Підтримуються: {supported}",
+  "PLATFORM_LLM_RATE_LIMITED": "Досягнуто погодинного ліміту в {limit} запитів. Спробуйте ще раз за годину",
+  "PLATFORM_LLM_KEY_MISSING": "API-ключ платформи для провайдера '{provider}' не налаштовано"
+}
