@@ -37,10 +37,17 @@ import { useActions } from '@/hooks/useActions';
 import { chatPath, conversationChatPath, ROUTES } from '@/router/router';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useGetAgentsQuery } from '@/api/endpoints/agent';
-import { useDeleteConversationMutation, useGetConversationsQuery } from '@/api/endpoints/conversation';
+import {
+  useDeleteConversationMutation,
+  useGetConversationsQuery,
+} from '@/api/endpoints/conversation';
 import type { AgentRead } from '@/api/types/agent';
 import type { ConversationRead } from '@/api/types/conversation';
-import { GROUP_ORDER, getConversationPreview, groupConversationsByDate } from '@/utils/conversation';
+import {
+  GROUP_ORDER,
+  getConversationPreview,
+  groupConversationsByDate,
+} from '@/utils/conversation';
 import SectionLabel from './SectionLabel';
 import { ACTION_BUTTONS } from './constants';
 
@@ -62,7 +69,8 @@ const Sidebar = () => {
   const { mode, toggleTheme } = useThemeMode();
   const { logout } = useActions();
   const navigate = useNavigate();
-  const [languageMenuAnchor, setLanguageMenuAnchor] = useState<HTMLElement | null>(null);
+  const [languageMenuAnchor, setLanguageMenuAnchor] =
+    useState<HTMLElement | null>(null);
 
   const [searchParams] = useSearchParams();
   const user = useAppSelector(state => state.auth.user);
@@ -74,8 +82,12 @@ const Sidebar = () => {
   const [deleteConversation] = useDeleteConversationMutation();
 
   const activeConversationId = searchParams.get('conversationId');
-  const [menuState, setMenuState] = useState<{ anchor: HTMLElement; conv: ConversationRead } | null>(null);
-  const [deletingConversation, setDeletingConversation] = useState<ConversationRead | null>(null);
+  const [menuState, setMenuState] = useState<{
+    anchor: HTMLElement;
+    conv: ConversationRead;
+  } | null>(null);
+  const [deletingConversation, setDeletingConversation] =
+    useState<ConversationRead | null>(null);
 
   const handleLogoutConfirm = () => {
     logout();
@@ -90,7 +102,10 @@ const Sidebar = () => {
     navigate(conversationChatPath(conversation.agent_id, conversation.id));
   };
 
-  const handleMenuOpen = (e: React.MouseEvent<HTMLButtonElement>, conv: ConversationRead) => {
+  const handleMenuOpen = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    conv: ConversationRead,
+  ) => {
     e.stopPropagation();
     setMenuState({ anchor: e.currentTarget, conv });
   };
@@ -186,50 +201,87 @@ const Sidebar = () => {
         <List disablePadding sx={{ mb: 1 }}>
           {agentsLoading ? (
             <Box sx={{ px: 1.5, py: 1 }}>
-              <Typography variant="caption" color="text.disabled">{t('common.loading')}</Typography>
+              <Typography variant="caption" color="text.disabled">
+                {t('common.loading')}
+              </Typography>
             </Box>
-          ) : agents.map(agent =>
-            collapsed ? (
-              <Tooltip key={agent.id} title={agent.name} placement="right">
+          ) : (
+            agents.map(agent =>
+              collapsed ? (
+                <Tooltip key={agent.id} title={agent.name} placement="right">
+                  <ListItemButton
+                    onClick={() => handleAgentClick(agent)}
+                    sx={{
+                      borderRadius: 1.5,
+                      mb: 0.25,
+                      py: 0.75,
+                      justifyContent: 'center',
+                      px: 0,
+                    }}
+                  >
+                    <Bot size={16} />
+                  </ListItemButton>
+                </Tooltip>
+              ) : (
                 <ListItemButton
+                  key={agent.id}
                   onClick={() => handleAgentClick(agent)}
-                  sx={{ borderRadius: 1.5, mb: 0.25, py: 0.75, justifyContent: 'center', px: 0 }}
+                  sx={{
+                    borderRadius: 1.5,
+                    mb: 0.25,
+                    py: 0.75,
+                    px: 1.5,
+                    gap: 1.5,
+                  }}
                 >
-                  <Bot size={16} />
+                  <Bot size={16} style={{ flexShrink: 0, opacity: 0.6 }} />
+                  <ListItemText
+                    primary={agent.name}
+                    slotProps={{
+                      primary: {
+                        style: { fontSize: '0.875rem' },
+                        noWrap: true,
+                      },
+                    }}
+                  />
                 </ListItemButton>
-              </Tooltip>
-            ) : (
-              <ListItemButton
-                key={agent.id}
-                onClick={() => handleAgentClick(agent)}
-                sx={{ borderRadius: 1.5, mb: 0.25, py: 0.75, px: 1.5, gap: 1.5 }}
-              >
-                <Bot size={16} style={{ flexShrink: 0, opacity: 0.6 }} />
-                <ListItemText
-                  primary={agent.name}
-                  slotProps={{ primary: { style: { fontSize: '0.875rem' }, noWrap: true } }}
-                />
-              </ListItemButton>
-            ),
+              ),
+            )
           )}
         </List>
 
         <Divider sx={{ mx: collapsed ? 0 : 0.5, mb: 1 }} />
 
         {/* Conversation history */}
-        {!collapsed && <SectionLabel>{t('sidebar.conversationHistory')}</SectionLabel>}
+        {!collapsed && (
+          <SectionLabel>{t('sidebar.conversationHistory')}</SectionLabel>
+        )}
         {conversationsLoading ? (
           <Box sx={{ px: 1.5, py: 1 }}>
-            <Typography variant="caption" color="text.disabled">{t('common.loading')}</Typography>
+            <Typography variant="caption" color="text.disabled">
+              {t('common.loading')}
+            </Typography>
           </Box>
         ) : collapsed ? (
-          <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+          <List
+            disablePadding
+            sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}
+          >
             {conversations.map(conv => (
-              <Tooltip key={conv.id} title={getConversationPreview(conv)} placement="right">
+              <Tooltip
+                key={conv.id}
+                title={getConversationPreview(conv)}
+                placement="right"
+              >
                 <ListItemButton
                   selected={activeConversationId === conv.id}
                   onClick={() => handleConversationClick(conv)}
-                  sx={{ borderRadius: 1.5, justifyContent: 'center', py: 0.75, px: 0 }}
+                  sx={{
+                    borderRadius: 1.5,
+                    justifyContent: 'center',
+                    py: 0.75,
+                    px: 0,
+                  }}
                 >
                   <MessageSquare size={16} />
                 </ListItemButton>
@@ -247,7 +299,7 @@ const Sidebar = () => {
         ) : (
           GROUP_ORDER.filter(g => grouped[g]?.length).map(group => (
             <Box key={group} sx={{ mb: 1 }}>
-              <SectionLabel>{group}</SectionLabel>
+              <SectionLabel>{t(`sidebar.dateGroups.${group}`)}</SectionLabel>
               <List disablePadding>
                 {grouped[group].map(conv => (
                   <ListItemButton
@@ -265,7 +317,12 @@ const Sidebar = () => {
                   >
                     <ListItemText
                       primary={getConversationPreview(conv)}
-                      slotProps={{ primary: { style: { fontSize: '0.875rem' }, noWrap: true } }}
+                      slotProps={{
+                        primary: {
+                          style: { fontSize: '0.875rem' },
+                          noWrap: true,
+                        },
+                      }}
                     />
                     <IconButton
                       className="conv-menu-btn"
@@ -301,7 +358,11 @@ const Sidebar = () => {
           const handleClick = path ? () => navigate(path) : undefined;
           return collapsed ? (
             <Tooltip key={labelKey} title={label} placement="right">
-              <IconButton size="small" onClick={handleClick} sx={{ ...ICON_BTN_SX, border: 'none' }}>
+              <IconButton
+                size="small"
+                onClick={handleClick}
+                sx={{ ...ICON_BTN_SX, border: 'none' }}
+              >
                 <Icon size={16} />
               </IconButton>
             </Tooltip>
@@ -356,8 +417,18 @@ const Sidebar = () => {
           borderRadius: 2,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
-          <Tooltip title={collapsed ? (user?.email ?? t('sidebar.guest')) : ''} placement="right">
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            overflow: 'hidden',
+          }}
+        >
+          <Tooltip
+            title={collapsed ? (user?.email ?? t('sidebar.guest')) : ''}
+            placement="right"
+          >
             <Avatar
               sx={{
                 width: 32,
@@ -373,7 +444,14 @@ const Sidebar = () => {
             </Avatar>
           </Tooltip>
           {!collapsed && (
-            <Typography noWrap sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.primary' }}>
+            <Typography
+              noWrap
+              sx={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'text.primary',
+              }}
+            >
               {user?.email ?? t('sidebar.guest')}
             </Typography>
           )}
@@ -385,7 +463,10 @@ const Sidebar = () => {
               <Languages size={16} />
             </IconButton>
           </Tooltip>
-          <Tooltip title={mode === 'light' ? t('theme.dark') : t('theme.light')} placement="right">
+          <Tooltip
+            title={mode === 'light' ? t('theme.dark') : t('theme.light')}
+            placement="right"
+          >
             <IconButton onClick={toggleTheme} size="small">
               {mode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </IconButton>
@@ -404,7 +485,10 @@ const Sidebar = () => {
         onClose={handleMenuClose}
         slotProps={{ paper: { sx: { minWidth: 160 } } }}
       >
-        <MenuItem onClick={handleDeleteMenuClick} sx={{ color: 'error.main', gap: 1.5 }}>
+        <MenuItem
+          onClick={handleDeleteMenuClick}
+          sx={{ color: 'error.main', gap: 1.5 }}
+        >
           <ListItemIcon sx={{ color: 'inherit', minWidth: 'unset' }}>
             <Trash2 size={14} />
           </ListItemIcon>

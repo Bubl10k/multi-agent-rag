@@ -40,6 +40,11 @@ export default {
     collections: 'Collections',
     dashboard: 'Dashboard',
     conversationHistory: 'Conversation History',
+    dateGroups: {
+      today: 'Today',
+      yesterday: 'Yesterday',
+      older: 'Older',
+    },
     noConversations: 'No conversations yet. Pick an agent above to start chatting.',
     guest: 'Guest',
     signOut: 'Sign out',

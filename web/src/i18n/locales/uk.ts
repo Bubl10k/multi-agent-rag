@@ -40,6 +40,11 @@ export default {
     collections: 'Колекції',
     dashboard: 'Панель керування',
     conversationHistory: 'Історія розмов',
+    dateGroups: {
+      today: 'Сьогодні',
+      yesterday: 'Учора',
+      older: 'Раніше',
+    },
     noConversations:
       'Розмов поки немає. Оберіть агента вище, щоб почати спілкування.',
     guest: 'Гість',
