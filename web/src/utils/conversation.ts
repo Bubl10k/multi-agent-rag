@@ -1,7 +1,7 @@
 import type { ConversationRead } from '@/api/types/conversation';
 import { MessageRole } from '@/types/chat';
 
-export const GROUP_ORDER = ['Today', 'Yesterday', 'Older'] as const;
+export const GROUP_ORDER = ['today', 'yesterday', 'older'] as const;
 
 export const getConversationPreview = (conversation: ConversationRead): string => {
   const firstUserMsg = conversation.messages.find(m => m.role === MessageRole.User);
@@ -21,9 +21,9 @@ export const groupConversationsByDate = (
     const date = new Date(conv.created_at);
     date.setHours(0, 0, 0, 0);
     let group: string;
-    if (date.getTime() === today.getTime()) group = 'Today';
-    else if (date.getTime() === yesterday.getTime()) group = 'Yesterday';
-    else group = 'Older';
+    if (date.getTime() === today.getTime()) group = 'today';
+    else if (date.getTime() === yesterday.getTime()) group = 'yesterday';
+    else group = 'older';
     (acc[group] ??= []).push(conv);
     return acc;
   }, {});
