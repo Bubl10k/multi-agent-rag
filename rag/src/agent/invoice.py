@@ -288,6 +288,8 @@ class InvoiceAgentGraph(BaseAgentGraph):
             [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
         )
         text = self._response_text(response.content)
+        if file_url:
+            text = re.sub(r"\]\([^)]*api/invoices/download[^)]*\)", f"]({file_url})", text)
         return {
             **FormatInvoiceOutput(
                 invoice_file_url=file_url or None,

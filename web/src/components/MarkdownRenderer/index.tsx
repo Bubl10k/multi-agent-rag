@@ -34,7 +34,7 @@ const useInvoiceDownload = () => {
 
 const InvoiceAwareLink = ({ href, children }: AnchorHTMLAttributes<HTMLAnchorElement>) => {
   const downloadInvoice = useInvoiceDownload();
-  if (href?.includes('/api/invoices/download')) {
+  if (href?.includes('api/invoices/download')) {
     return (
       <Link
         href={href}
