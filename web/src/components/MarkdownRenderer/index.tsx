@@ -1,4 +1,5 @@
 import { useState, type AnchorHTMLAttributes } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
@@ -55,6 +56,7 @@ const InvoiceAwareLink = ({ href, children }: AnchorHTMLAttributes<HTMLAnchorEle
 };
 
 const CopyButton = ({ code }: { code: string }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code);
@@ -62,7 +64,7 @@ const CopyButton = ({ code }: { code: string }) => {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <Tooltip title={copied ? 'Copied!' : 'Copy'}>
+    <Tooltip title={copied ? t('common.copied') : t('common.copy')}>
       <IconButton
         onClick={handleCopy}
         size="small"

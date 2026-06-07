@@ -14,7 +14,7 @@ async def download_invoice(key: str = Query(...), _user: UserDep = None) -> Resp
     try:
         pdf_bytes = s3_service.download_invoice(key)
     except Exception:
-        raise HTTPException(status_code=404, detail="Invoice not found")
+        raise HTTPException(status_code=404, detail="INVOICE_NOT_FOUND")
 
     filename = os.path.basename(key)
     return Response(

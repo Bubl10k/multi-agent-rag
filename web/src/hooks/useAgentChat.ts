@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
 import { useAppDispatch, useAppSelector } from '@/store';
@@ -17,6 +18,7 @@ export const useAgentChat = ({
 }: UseAgentChatOptions): UseAgentChatReturn => {
   const token = useAppSelector(state => state.auth.token);
   const dispatch = useAppDispatch();
+  const { t, i18n } = useTranslation();
 
   const [messages, setMessages] = useState<Message[]>(initialMessages ?? []);
   const [streamingContent, setStreamingContent] = useState('');
@@ -105,7 +107,7 @@ export const useAgentChat = ({
           { id: Date.now().toString(), role: MessageRole.Error, content: message },
         ]);
       },
-    });
+    }, t('chat.connectionError'));
 
     socketRef.current = socket;
 
@@ -113,12 +115,12 @@ export const useAgentChat = ({
       socket.close();
       socketRef.current = null;
     };
-  }, [agentId, token, dispatch]);
+  }, [agentId, token, dispatch, t]);
 
   const sendMessage = useCallback((text: string) => {
     const socket = socketRef.current;
     if (!socket?.isOpen()) {
-      toast.error('Not connected');
+      toast.error(t('chat.notConnected'));
       return;
     }
     setMessages(prev => [
@@ -127,8 +129,8 @@ export const useAgentChat = ({
     ]);
     setIsStreaming(true);
     setStreamingContent('');
-    socket.send(text, conversationIdRef.current);
-  }, []);
+    socket.send(text, conversationIdRef.current, i18n.language);
+  }, [t, i18n.language]);
 
   const stopStreaming = useCallback(() => {
     socketRef.current?.stop();

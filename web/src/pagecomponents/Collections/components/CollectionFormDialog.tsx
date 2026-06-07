@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -29,6 +30,7 @@ type Props = {
 };
 
 const CollectionFormDialog = ({ open, collection, onClose }: Props) => {
+  const { t } = useTranslation();
   const isEdit = !!collection;
   const [createCollection, { isLoading: isCreating }] =
     useCreateCollectionMutation();
@@ -69,24 +71,24 @@ const CollectionFormDialog = ({ open, collection, onClose }: Props) => {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle sx={{ pb: 0 }}>
-        {isEdit ? 'Edit Collection' : 'Add Collection'}
+        {isEdit ? t('collections.form.titleEdit') : t('collections.form.titleAdd')}
       </DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
-            <FormTextField name="name" control={control} label="Name" />
+            <FormTextField name="name" control={control} label={t('collections.form.name')} />
             <FormTextField
               name="description"
               control={control}
-              label="Description"
+              label={t('collections.form.description')}
               multiline
               rows={2}
             />
             <FormTextField
               name="embedding_model"
               control={control}
-              label="Embedding Model"
-              placeholder="Leave blank to use default"
+              label={t('collections.form.embeddingModel')}
+              placeholder={t('collections.form.embeddingModelPlaceholder')}
             />
           </Stack>
         </DialogContent>
@@ -97,14 +99,14 @@ const CollectionFormDialog = ({ open, collection, onClose }: Props) => {
             fullWidth
             sx={{ flex: 1 }}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <SubmitButton
             isLoading={isCreating || isUpdating}
             fullWidth
             sx={{ flex: 1, py: 1 }}
           >
-            {isEdit ? 'Save changes' : 'Add collection'}
+            {isEdit ? t('collections.form.saveChanges') : t('collections.addCollection')}
           </SubmitButton>
         </DialogActions>
       </form>

@@ -1,35 +1,22 @@
 import asyncio
 import logging
-from typing import Annotated
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, StateGraph
-from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
-from typing_extensions import TypedDict
 
 from rag.src.agent.base import BaseAgentGraph
 from rag.src.agent.enums import MathNode
+from rag.src.agent.schemes import ExplainOutput, ParseProblemOutput, SolveOutput, VerifyOutput
+from rag.src.agent.states import MathState
 from rag.src.agent.tools.math_tools import sympy_compute
 from rag.src.agent.tools.vector_search import make_vector_search_tool
+from rag.src.agent.types import AgentType
 
 logger = logging.getLogger(__name__)
-
-
-class MathState(TypedDict):
-    messages: Annotated[list[BaseMessage], add_messages]
-    problem_type: str
-    parsed_components: dict
-    is_ambiguous: bool
-    solution_expr: str
-    solution_numeric: float | None
-    verification_passed: bool
-    retry_count: int
-    max_retries: int
-    explanation: str
 
 
 class MathAgentGraph(BaseAgentGraph):
@@ -41,10 +28,11 @@ class MathAgentGraph(BaseAgentGraph):
         agent_config: dict,
     ) -> None:
         self.llm = llm
-        self.system_msg = SystemMessage(content=prompt)
+        self.prompt = prompt
         self.max_retries: int = agent_config.get("max_retries", 3)
         self.sympy_timeout: float = agent_config.get("sympy_timeout_seconds", 5.0)
         self.search_tools: list[StructuredTool] = [make_vector_search_tool(name) for name in collection_names]
+        self._prompts = self.get_all_nodes(AgentType.MATH)
 
     async def _gather_context(self, query: str) -> str:
         if not self.search_tools:
@@ -67,18 +55,13 @@ class MathAgentGraph(BaseAgentGraph):
             (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
             "",
         )
-        content = (
-            f"Analyze this math problem and extract its structure.\n\n"
-            f"Problem: {user_question}\n\n"
-            f"Respond in this exact format:\n"
-            f"PROBLEM_TYPE: <algebra|calculus|statistics|geometry|arithmetic|other>\n"
-            f"KNOWNS: <comma-separated list of known values/conditions>\n"
-            f"UNKNOWNS: <comma-separated list of what needs to be found>\n"
-            f"CONSTRAINTS: <comma-separated list of constraints>\n"
-            f"AMBIGUOUS: <yes|no>\n"
-            f"If AMBIGUOUS is yes, add a CLARIFICATION_NEEDED line explaining what is unclear."
+        content = self._render_prompt(
+            self._prompts["parse_problem"],
+            user_question=user_question,
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
 
         problem_type = "other"
@@ -97,24 +80,25 @@ class MathAgentGraph(BaseAgentGraph):
             elif line.startswith("AMBIGUOUS:"):
                 is_ambiguous = "yes" in line.lower()
 
-        return {
-            "problem_type": problem_type,
-            "parsed_components": {"knowns": knowns, "unknowns": unknowns, "constraints": constraints},
-            "is_ambiguous": is_ambiguous,
-            "retry_count": 0,
-            "max_retries": self.max_retries,
-        }
+        return ParseProblemOutput(
+            problem_type=problem_type,
+            parsed_components={"knowns": knowns, "unknowns": unknowns, "constraints": constraints},
+            is_ambiguous=is_ambiguous,
+            retry_count=0,
+            max_retries=self.max_retries,
+        ).model_dump()
 
     async def clarify(self, state: MathState) -> dict:
-        content = (
-            f"The math problem is ambiguous. Ask the user a specific question to resolve it.\n\n"
-            f"Identified components:\n"
-            f"  Knowns: {state['parsed_components'].get('knowns', [])}\n"
-            f"  Unknowns: {state['parsed_components'].get('unknowns', [])}\n"
-            f"  Constraints: {state['parsed_components'].get('constraints', [])}\n\n"
-            f"Ask a single, clear question that will let you proceed with solving."
+        components = state["parsed_components"]
+        content = self._render_prompt(
+            self._prompts["clarify"],
+            knowns=components.get("knowns", []),
+            unknowns=components.get("unknowns", []),
+            constraints=components.get("constraints", []),
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
         return {"messages": [AIMessage(content=text)]}
 
@@ -132,17 +116,19 @@ class MathAgentGraph(BaseAgentGraph):
                 f"Try a different approach or check for errors."
             )
 
-        content = (
-            f"Solve this math problem step by step.\n\n"
-            f"Problem: {user_question}\n"
-            f"Type: {state.get('problem_type', 'unknown')}\n"
-            f"Components: {state.get('parsed_components', {})}{hint}\n\n"
-            f"If possible, provide a SymPy-evaluable expression for the final answer on a line starting with 'SYMPY: '."
+        context_section = f"\n\nRelevant formulas/theorems:\n{context}" if context else ""
+        content = self._render_prompt(
+            self._prompts["solve"],
+            user_question=user_question,
+            problem_type=state.get("problem_type", "unknown"),
+            parsed_components=state.get("parsed_components", {}),
+            hint=hint,
+            context_section=context_section,
         )
-        if context:
-            content += f"\n\nRelevant formulas/theorems:\n{context}"
 
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         solution_text = self._response_text(response.content)
 
         sympy_expr = ""
@@ -159,57 +145,61 @@ class MathAgentGraph(BaseAgentGraph):
             except (ValueError, TypeError):
                 pass
 
-        return {
-            "solution_expr": sympy_expr or solution_text,
-            "solution_numeric": solution_numeric,
-        }
+        return SolveOutput(
+            solution_expr=sympy_expr or solution_text,
+            solution_numeric=solution_numeric,
+        ).model_dump()
 
     async def verify(self, state: MathState) -> dict:
-        content = (
-            f"Verify this mathematical solution.\n\n"
-            f"Problem components: {state.get('parsed_components', {})}\n"
-            f"Solution: {state.get('solution_expr', '')}\n\n"
-            f"Check that the solution satisfies all constraints and is mathematically correct. "
-            f"Start your response with exactly CORRECT or INCORRECT, then explain."
+        content = self._render_prompt(
+            self._prompts["verify"],
+            parsed_components=state.get("parsed_components", {}),
+            solution_expr=state.get("solution_expr", ""),
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
         verification_passed = text.strip().upper().startswith("CORRECT")
 
-        return {
-            "verification_passed": verification_passed,
-            "retry_count": state.get("retry_count", 0) + (0 if verification_passed else 1),
-        }
+        return VerifyOutput(
+            verification_passed=verification_passed,
+            retry_count=state.get("retry_count", 0) + (0 if verification_passed else 1),
+        ).model_dump()
 
     async def explain(self, state: MathState) -> dict:
         user_question = next(
             (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
             "",
         )
-        content = (
-            f"Provide a clear, step-by-step explanation of the solution to this math problem.\n\n"
-            f"Problem: {user_question}\n"
-            f"Solution: {state.get('solution_expr', '')}\n"
-            f"Components: {state.get('parsed_components', {})}"
+        content = self._render_prompt(
+            self._prompts["explain"],
+            user_question=user_question,
+            solution_expr=state.get("solution_expr", ""),
+            parsed_components=state.get("parsed_components", {}),
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
-        return {"explanation": text, "messages": [AIMessage(content=text)]}
+        return {**ExplainOutput(explanation=text).model_dump(), "messages": [AIMessage(content=text)]}
 
     async def explain_failure(self, state: MathState) -> dict:
         user_question = next(
             (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
             "",
         )
-        content = (
-            f"The math problem could not be solved and verified after {state.get('retry_count', 0)} attempt(s). "
-            f"Summarize what was tried, why verification failed, and suggest next steps.\n\n"
-            f"Problem: {user_question}\n"
-            f"Last solution attempted: {state.get('solution_expr', 'none')}"
+        content = self._render_prompt(
+            self._prompts["explain_failure"],
+            retry_count=state.get("retry_count", 0),
+            user_question=user_question,
+            solution_expr=state.get("solution_expr", "none"),
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
-        return {"explanation": text, "messages": [AIMessage(content=text)]}
+        return {**ExplainOutput(explanation=text).model_dump(), "messages": [AIMessage(content=text)]}
 
     def route_after_parse(self, state: MathState) -> MathNode:
         return MathNode.CLARIFY if state.get("is_ambiguous") else MathNode.SOLVE

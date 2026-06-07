@@ -3,6 +3,7 @@ from fastapi import APIRouter, UploadFile
 from rag.src.api.dependencies import DocumentServiceDep, UserDep
 from rag.src.api.schemas.documents import (
     CollectionFilesResponse,
+    ParsedDocumentResponse,
     SearchDocumentsResponse,
     UploadDocumentResponse,
 )
@@ -18,6 +19,15 @@ async def upload_document_to_vector_store(
     _: UserDep,
 ):
     return await document_service.upload_file_to_store(file=file, collection_name=collection_name)
+
+
+@router.post("/parse", response_model=ParsedDocumentResponse)
+async def parse_document(
+    file: UploadFile,
+    document_service: DocumentServiceDep,
+    _: UserDep,
+):
+    return await document_service.parse_file(file=file)
 
 
 @router.get("/files", response_model=CollectionFilesResponse)

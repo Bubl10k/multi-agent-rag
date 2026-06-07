@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
@@ -23,6 +24,7 @@ import type { LLMRead } from '@/api/types/llm';
 import LLMFormDialog from './components/LLMFormDialog.tsx';
 
 const LLMModelsPage = () => {
+  const { t } = useTranslation();
   const { data: llms = [], isLoading } = useGetLLMsQuery();
   const [deleteLLM] = useDeleteLLMMutation();
 
@@ -47,14 +49,14 @@ const LLMModelsPage = () => {
         }}
       >
         <Typography variant="h5" fontWeight={600}>
-          LLM Models
+          {t('llmModels.title')}
         </Typography>
         <Button
           variant="contained"
           startIcon={<Plus size={16} />}
           onClick={() => setAddOpen(true)}
         >
-          Add model
+          {t('llmModels.addModel')}
         </Button>
       </Box>
 
@@ -65,7 +67,7 @@ const LLMModelsPage = () => {
       ) : llms.length === 0 ? (
         <Box sx={{ py: 8, textAlign: 'center' }}>
           <Typography color="text.secondary">
-            No models yet. Add your first LLM model to get started.
+            {t('llmModels.noModels')}
           </Typography>
         </Box>
       ) : (
@@ -73,9 +75,9 @@ const LLMModelsPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Model name</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('llmModels.table.modelName')}</TableCell>
+                <TableCell>{t('llmModels.table.status')}</TableCell>
+                <TableCell align="right">{t('llmModels.table.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -88,14 +90,14 @@ const LLMModelsPage = () => {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={llm.is_active ? 'Active' : 'Inactive'}
+                      label={llm.is_active ? t('llmModels.active') : t('llmModels.inactive')}
                       color={llm.is_active ? 'success' : 'default'}
                       size="small"
                       variant="outlined"
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Edit">
+                    <Tooltip title={t('common.edit')}>
                       <IconButton
                         size="small"
                         onClick={() => setEditingLLM(llm)}
@@ -103,7 +105,7 @@ const LLMModelsPage = () => {
                         <Pencil size={15} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('common.delete')}>
                       <IconButton
                         size="small"
                         onClick={() => setDeletingLLM(llm)}
@@ -130,10 +132,10 @@ const LLMModelsPage = () => {
 
       <ConfirmDialog
         open={!!deletingLLM}
-        title="Delete model"
-        description={`"${deletingLLM?.model_name}" will be permanently deleted.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('llmModels.deleteConfirmTitle')}
+        description={t('llmModels.deleteConfirmDescription', { name: deletingLLM?.model_name })}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeletingLLM(null)}
       />

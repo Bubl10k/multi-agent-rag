@@ -79,6 +79,7 @@ class AgentStreamingService:
         message: str,
         conversation_id: uuid.UUID,
         uow: UnitOfWork,
+        language: str | None = None,
     ) -> AsyncGenerator[str, None]:
         config = RunnableConfig(configurable={"thread_id": str(conversation_id)})
 
@@ -90,7 +91,7 @@ class AgentStreamingService:
         full_response: list[str] = []
         try:
             async for event in graph.astream_events(
-                {"messages": [HumanMessage(content=message)]},
+                {"messages": [HumanMessage(content=message)], "language": language},
                 config=config,
                 version="v2",
             ):
@@ -128,6 +129,7 @@ class AgentStreamingService:
         message: str,
         conversation_id: uuid.UUID,
         uow: UnitOfWork,
+        language: str | None = None,
     ) -> bool:
         """
         Stream tokens to the websocket while listening for a stop signal.
@@ -136,7 +138,7 @@ class AgentStreamingService:
         """
 
         async def do_stream() -> None:
-            async for token in AgentStreamingService.stream(graph, message, conversation_id, uow):
+            async for token in AgentStreamingService.stream(graph, message, conversation_id, uow, language):
                 await websocket.send_text(token)
 
         stream_task = asyncio.create_task(do_stream())
@@ -203,6 +205,7 @@ class AgentStreamingService:
                     continue
 
                 message = data.get("message", "").strip()
+                language = data.get("language") or None
                 logger.info(f"Received message: {message}")
                 if not message:
                     await websocket.send_json({"error": "Field 'message' is required"})
@@ -226,7 +229,7 @@ class AgentStreamingService:
 
                 try:
                     stopped = await AgentStreamingService._stream_with_cancellation(
-                        websocket, graph, message, conversation.id, uow
+                        websocket, graph, message, conversation.id, uow, language
                     )
                 except Exception as e:
                     logger.exception("Error during streaming")

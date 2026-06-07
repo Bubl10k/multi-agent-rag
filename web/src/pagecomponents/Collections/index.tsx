@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
@@ -26,6 +27,7 @@ import CollectionFormDialog from './components/CollectionFormDialog.tsx';
 import CollectionFilesDialog from './components/CollectionFilesDialog.tsx';
 
 const CollectionsPage = () => {
+  const { t } = useTranslation();
   const { data: collections = [], isLoading } = useGetCollectionsQuery();
   const [deleteCollection] = useDeleteCollectionMutation();
 
@@ -55,14 +57,14 @@ const CollectionsPage = () => {
         }}
       >
         <Typography variant="h5" fontWeight={600}>
-          Collections
+          {t('collections.title')}
         </Typography>
         <Button
           variant="contained"
           startIcon={<Plus size={16} />}
           onClick={() => setAddOpen(true)}
         >
-          Add collection
+          {t('collections.addCollection')}
         </Button>
       </Box>
 
@@ -73,7 +75,7 @@ const CollectionsPage = () => {
       ) : collections.length === 0 ? (
         <Box sx={{ py: 8, textAlign: 'center' }}>
           <Typography color="text.secondary">
-            No collections yet. Create one to start uploading documents.
+            {t('collections.noCollections')}
           </Typography>
         </Box>
       ) : (
@@ -81,10 +83,10 @@ const CollectionsPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Embedding Model</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('collections.table.name')}</TableCell>
+                <TableCell>{t('collections.table.description')}</TableCell>
+                <TableCell>{t('collections.table.embeddingModel')}</TableCell>
+                <TableCell align="right">{t('collections.table.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -106,7 +108,7 @@ const CollectionsPage = () => {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Files">
+                    <Tooltip title={t('collections.files')}>
                       <IconButton
                         size="small"
                         onClick={() => setFilesCollection(collection)}
@@ -114,7 +116,7 @@ const CollectionsPage = () => {
                         <Files size={15} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Edit">
+                    <Tooltip title={t('common.edit')}>
                       <IconButton
                         size="small"
                         onClick={() => setEditingCollection(collection)}
@@ -123,7 +125,7 @@ const CollectionsPage = () => {
                         <Pencil size={15} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('common.delete')}>
                       <IconButton
                         size="small"
                         onClick={() => setDeletingCollection(collection)}
@@ -156,10 +158,10 @@ const CollectionsPage = () => {
 
       <ConfirmDialog
         open={!!deletingCollection}
-        title="Delete collection"
-        description={`"${deletingCollection?.name}" and all its documents will be permanently deleted.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('collections.deleteConfirmTitle')}
+        description={t('collections.deleteConfirmDescription', { name: deletingCollection?.name })}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeletingCollection(null)}
       />

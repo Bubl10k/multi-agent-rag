@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Typography } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
-import { loginSchema, type LoginFormValues } from '@/validation/auth';
+import { getLoginSchema, type LoginFormValues } from '@/validation/auth';
 import { useLoginMutation } from '@/api/endpoints/auth';
 import { useActions } from '@/hooks/useActions';
 import { ROUTES } from '@/router/router';
@@ -13,10 +15,12 @@ import FormTextField from '@/components/Form/FormTextField';
 import SubmitButton from '@/components/Form/SubmitButton';
 
 const LoginPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { setCredentials } = useActions();
   const [login, { isLoading }] = useLoginMutation();
 
+  const loginSchema = useMemo(() => getLoginSchema(t), [t]);
   const { control, handleSubmit } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -34,18 +38,19 @@ const LoginPage = () => {
         user: { id: '', email },
       });
       navigate(ROUTES.HOME);
-    } catch {
-      toast.error('Invalid email or password');
+    } catch (err: any) {
+      const detail = err?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('auth.login.genericError'));
     }
   };
 
   return (
-    <AuthCard title="Sign in">
+    <AuthCard title={t('auth.login.title')}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <FormTextField
           name="email"
           control={control}
-          label="Email"
+          label={t('auth.login.email')}
           type="email"
           autoComplete="email"
           sx={{ mb: 2.5 }}
@@ -53,21 +58,21 @@ const LoginPage = () => {
         <FormTextField
           name="password"
           control={control}
-          label="Password"
+          label={t('auth.login.password')}
           type="password"
           autoComplete="current-password"
           sx={{ mb: 2.5 }}
         />
-        <SubmitButton isLoading={isLoading}>Sign in</SubmitButton>
+        <SubmitButton isLoading={isLoading}>{t('auth.login.submit')}</SubmitButton>
       </form>
 
       <Typography variant="body2" color="text.secondary" textAlign="center">
-        Don&apos;t have an account?{' '}
+        {t('auth.login.noAccount')}{' '}
         <Link
           to={ROUTES.REGISTER}
           style={{ color: 'inherit', fontWeight: 600 }}
         >
-          Sign up
+          {t('auth.login.signUp')}
         </Link>
       </Typography>
     </AuthCard>

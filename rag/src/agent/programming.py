@@ -1,36 +1,24 @@
 import asyncio
 import logging
-from typing import Annotated
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, StateGraph
-from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
-from typing_extensions import TypedDict
 
 from rag.src.agent.base import BaseAgentGraph
 from rag.src.agent.enums import ProgrammingNode
+from rag.src.agent.schemes import ExecuteOutput, FinalAnswerOutput, PlanOutput, ReviewOutput, WriteCodeOutput
+from rag.src.agent.states import ProgrammingState
 from rag.src.agent.tools.code_execution import execute_in_sandbox
 from rag.src.agent.tools.vector_search import make_vector_search_tool
+from rag.src.agent.types import AgentType
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_ALLOWED_MODULES = ["math", "json", "re", "itertools", "datetime"]
-
-
-class ProgrammingState(TypedDict):
-    messages: Annotated[list[BaseMessage], add_messages]
-    plan: str
-    code: str
-    stdout: str
-    stderr: str
-    exit_code: int
-    retry_count: int
-    max_retries: int
-    final_answer: str
 
 
 class ProgrammingAgentGraph(BaseAgentGraph):
@@ -42,11 +30,12 @@ class ProgrammingAgentGraph(BaseAgentGraph):
         agent_config: dict,
     ) -> None:
         self.llm = llm
-        self.system_msg = SystemMessage(content=prompt)
+        self.prompt = prompt
         self.max_retries: int = agent_config.get("max_retries", 1)
         self.timeout: float = agent_config.get("execution_timeout_seconds", 10)
         self.allowed_modules: list[str] = agent_config.get("allowed_modules", _DEFAULT_ALLOWED_MODULES)
         self.search_tools: list[StructuredTool] = [make_vector_search_tool(name) for name in collection_names]
+        self._prompts = self.get_all_nodes(AgentType.PROGRAMMING)
 
     async def _gather_context(self, query: str) -> str:
         if not self.search_tools:
@@ -80,12 +69,21 @@ class ProgrammingAgentGraph(BaseAgentGraph):
         )
         context = await self._gather_context(str(user_question))
 
-        content = f"Analyze this programming request and outline a clear implementation plan:\n\n{user_question}"
-        if context:
-            content += f"\n\nRelevant context from knowledge base:\n{context}"
+        context_section = f"\n\nRelevant context from knowledge base:\n{context}" if context else ""
+        content = self._render_prompt(
+            self._prompts["plan"],
+            user_question=user_question,
+            context_section=context_section,
+        )
 
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
-        return {"plan": self._response_text(response.content), "retry_count": 0, "max_retries": self.max_retries}
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
+        return PlanOutput(
+            plan=self._response_text(response.content),
+            retry_count=0,
+            max_retries=self.max_retries,
+        ).model_dump()
 
     async def write_code(self, state: ProgrammingState) -> dict:
         error_hint = ""
@@ -96,13 +94,17 @@ class ProgrammingAgentGraph(BaseAgentGraph):
                 f"Error:\n{state['stderr']}\n\n"
                 f"Fix the issue based on the revised plan above."
             )
-
-        content = (
-            f"Based on this plan, write correct Python code:\n\n{state['plan']}{error_hint}"
-            f"\n\nReturn ONLY the Python code with no explanation or markdown fences."
+        content = self._render_prompt(
+            self._prompts["write_code"],
+            plan=state["plan"],
+            error_hint=error_hint,
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
-        return {"code": self._strip_code_fences(self._response_text(response.content))}
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
+        return WriteCodeOutput(
+            code=self._strip_code_fences(self._response_text(response.content)),
+        ).model_dump()
 
     async def execute(self, state: ProgrammingState) -> dict:
         logger.info("Executing code (attempt %d)", state.get("retry_count", 0) + 1)
@@ -111,40 +113,51 @@ class ProgrammingAgentGraph(BaseAgentGraph):
             timeout=self.timeout,
             allowed_modules=self.allowed_modules,
         )
-        return {"stdout": result.stdout, "stderr": result.stderr, "exit_code": result.exit_code}
+        return ExecuteOutput(
+            stdout=result.stdout,
+            stderr=result.stderr,
+            exit_code=result.exit_code,
+        ).model_dump()
 
     async def review(self, state: ProgrammingState) -> dict:
-        content = (
-            f"The code produced an error. Diagnose it and provide a revised implementation plan.\n\n"
-            f"Original plan:\n{state['plan']}\n\n"
-            f"Code:\n```python\n{state['code']}\n```\n\n"
-            f"Error:\n{state['stderr']}"
+        content = self._render_prompt(
+            self._prompts["review"],
+            plan=state["plan"],
+            code=state["code"],
+            stderr=state["stderr"],
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
-        return {"plan": self._response_text(response.content), "retry_count": state.get("retry_count", 0) + 1}
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
+        return ReviewOutput(
+            plan=self._response_text(response.content),
+            retry_count=state.get("retry_count", 0) + 1,
+        ).model_dump()
 
     async def explain(self, state: ProgrammingState) -> dict:
-        content = (
-            f"The code ran successfully. Write a clear, helpful response that includes "
-            f"the solution code, its output, and an explanation of how it works.\n\n"
-            f"Code:\n```python\n{state['code']}\n```\n\n"
-            f"Output:\n{state['stdout']}"
+        content = self._render_prompt(
+            self._prompts["explain"],
+            code=state["code"],
+            stdout=state["stdout"],
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
-        return {"final_answer": text, "messages": [AIMessage(content=text)]}
+        return {**FinalAnswerOutput(final_answer=text).model_dump(), "messages": [AIMessage(content=text)]}
 
     async def explain_failure(self, state: ProgrammingState) -> dict:
-        attempts = state.get("retry_count", 0) + 1
-        content = (
-            f"The code execution failed after {attempts} attempt(s). "
-            f"Summarize what was tried, why it failed, and suggest next steps.\n\n"
-            f"Last code:\n```python\n{state['code']}\n```\n\n"
-            f"Last error:\n{state['stderr']}"
+        content = self._render_prompt(
+            self._prompts["explain_failure"],
+            attempts=state.get("retry_count", 0) + 1,
+            code=state["code"],
+            stderr=state["stderr"],
         )
-        response = await self.llm.ainvoke([self.system_msg, HumanMessage(content=content)])
+        response = await self.llm.ainvoke(
+            [self._system_message(self.prompt, state.get("language")), HumanMessage(content=content)]
+        )
         text = self._response_text(response.content)
-        return {"final_answer": text, "messages": [AIMessage(content=text)]}
+        return {**FinalAnswerOutput(final_answer=text).model_dump(), "messages": [AIMessage(content=text)]}
 
     def route_after_execute(self, state: ProgrammingState) -> ProgrammingNode:
         if state.get("exit_code", 1) == 0:

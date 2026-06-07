@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -11,7 +13,6 @@ import {
   FormControlLabel,
   Stack,
   Switch,
-  Typography,
 } from '@mui/material';
 
 import FormTextField from '@/components/Form/FormTextField.tsx';
@@ -20,7 +21,7 @@ import {
   useCreateLLMMutation,
   useUpdateLLMMutation,
 } from '@/api/endpoints/llm.ts';
-import { llmFormSchema, type LLMFormValues } from '@/validation/llm.ts';
+import { getLLMFormSchema, type LLMFormValues } from '@/validation/llm.ts';
 
 import type { LLMRead } from '@/api/types/llm.ts';
 
@@ -31,9 +32,12 @@ type Props = {
 };
 
 const LLMFormDialog = ({ open, llm, onClose }: Props) => {
+  const { t } = useTranslation();
   const isEdit = !!llm;
   const [createLLM, { isLoading: isCreating }] = useCreateLLMMutation();
   const [updateLLM, { isLoading: isUpdating }] = useUpdateLLMMutation();
+
+  const llmFormSchema = useMemo(() => getLLMFormSchema(t), [t]);
 
   const { control, handleSubmit, reset, setError } = useForm<LLMFormValues>({
     resolver: zodResolver(llmFormSchema),
@@ -52,7 +56,7 @@ const LLMFormDialog = ({ open, llm, onClose }: Props) => {
 
   const onSubmit = async (values: LLMFormValues) => {
     if (!isEdit && !values.api_key) {
-      setError('api_key', { message: 'API key is required' });
+      setError('api_key', { message: t('llmModels.form.apiKeyRequired') });
       return;
     }
     if (isEdit) {
@@ -76,37 +80,32 @@ const LLMFormDialog = ({ open, llm, onClose }: Props) => {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle sx={{ pb: 0 }}>
-        {isEdit ? 'Edit LLM Model' : 'Add LLM Model'}
+        {isEdit ? t('llmModels.form.titleEdit') : t('llmModels.form.titleAdd')}
       </DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             <DialogContentText variant="body2">
-              Enter the model identifier and API key from your provider.{' '}
-              <Typography
+              {t('llmModels.form.intro')}{' '}
+              <Box
                 component="span"
-                variant="body2"
-                color="text.secondary"
-                fontSize="inherit"
+                sx={{ color: 'text.secondary', fontSize: 'inherit' }}
               >
-                Model name must match the exact ID used by the provider (e.g.{' '}
-                <code>gpt-4o</code> for OpenAI, <code>claude-sonnet-4-6</code>{' '}
-                for Anthropic). API keys can be found in your provider's
-                dashboard under API settings.
-              </Typography>
+                {t('llmModels.form.introDetail')}
+              </Box>
             </DialogContentText>
             <FormTextField
               name="model_name"
               control={control}
-              label="Model Name"
-              placeholder="e.g. gpt-4o, claude-sonnet-4-6"
+              label={t('llmModels.form.modelName')}
+              placeholder={t('llmModels.form.modelNamePlaceholder')}
             />
             <FormTextField
               name="api_key"
               control={control}
-              label="API Key"
+              label={t('llmModels.form.apiKey')}
               type="password"
-              placeholder={isEdit ? 'Leave blank to keep current key' : ''}
+              placeholder={isEdit ? t('llmModels.form.apiKeyPlaceholderEdit') : ''}
             />
             <Controller
               name="is_active"
@@ -116,7 +115,7 @@ const LLMFormDialog = ({ open, llm, onClose }: Props) => {
                   control={
                     <Switch checked={field.value} onChange={field.onChange} />
                   }
-                  label="Active"
+                  label={t('llmModels.form.active')}
                 />
               )}
             />
@@ -129,14 +128,14 @@ const LLMFormDialog = ({ open, llm, onClose }: Props) => {
             fullWidth
             sx={{ flex: 1 }}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <SubmitButton
             isLoading={isCreating || isUpdating}
             fullWidth={true}
             sx={{ flex: 1, py: 1 }}
           >
-            {isEdit ? 'Save changes' : 'Add model'}
+            {isEdit ? t('llmModels.form.saveChanges') : t('llmModels.addModel')}
           </SubmitButton>
         </DialogActions>
       </form>

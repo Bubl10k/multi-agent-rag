@@ -1,20 +1,23 @@
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 
-export const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-export const registerSchema = z
-  .object({
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string(),
-  })
-  .refine(data => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
+export const getLoginSchema = (t: TFunction) =>
+  z.object({
+    email: z.string().email(t('auth.validation.invalidEmail')),
+    password: z.string().min(1, t('auth.validation.passwordRequired')),
   });
 
-export type LoginFormValues = z.infer<typeof loginSchema>;
-export type RegisterFormValues = z.infer<typeof registerSchema>;
+export const getRegisterSchema = (t: TFunction) =>
+  z
+    .object({
+      email: z.string().email(t('auth.validation.invalidEmail')),
+      password: z.string().min(8, t('auth.validation.passwordMinLength')),
+      confirmPassword: z.string(),
+    })
+    .refine(data => data.password === data.confirmPassword, {
+      message: t('auth.validation.passwordsDoNotMatch'),
+      path: ['confirmPassword'],
+    });
+
+export type LoginFormValues = z.infer<ReturnType<typeof getLoginSchema>>;
+export type RegisterFormValues = z.infer<ReturnType<typeof getRegisterSchema>>;

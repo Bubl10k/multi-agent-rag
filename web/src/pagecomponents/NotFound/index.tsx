@@ -1,10 +1,12 @@
 import { Box, Button, Typography } from '@mui/material';
 import { FileQuestion } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { ROUTES } from '@/router/router';
 
 const NotFound = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -22,10 +24,10 @@ const NotFound = () => {
     >
       <FileQuestion size={48} strokeWidth={1.2} />
       <Typography variant="h6" color="text.secondary" fontWeight={500}>
-        404 — Page not found
+        {t('notFound.title')}
       </Typography>
       <Typography variant="body2">
-        The page you're looking for doesn't exist.
+        {t('notFound.description')}
       </Typography>
       <Button
         variant="outlined"
@@ -33,7 +35,7 @@ const NotFound = () => {
         sx={{ mt: 1 }}
         onClick={() => navigate(ROUTES.HOME)}
       >
-        Go home
+        {t('notFound.backHome')}
       </Button>
     </Box>
   );

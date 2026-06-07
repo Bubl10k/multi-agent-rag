@@ -7,3 +7,8 @@ export type CollectionFilesResponse = {
   collection: string;
   files: string[];
 };
+
+export type ParsedDocumentResponse = {
+  filename: string;
+  content: string;
+};

@@ -4,7 +4,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=flat&logo=langchain&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat&logo=langchain&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
 ![pgvector](https://img.shields.io/badge/pgvector-4169E1?style=flat&logo=postgresql&logoColor=white)
 
@@ -22,7 +22,7 @@ The system is accessible via a CLI tool and a web interface.
 ## Requirements
 
 ### Core
-1. CLI tool to interact with the system from the terminal.
+1. CLI tool to interact with the system from the terminal. *(In Progress)*
 2. Web interface for browser-based access.
 3. Streaming responses in real-time via WebSockets.
 4. Conversation history — the system remembers context within a session.
@@ -63,7 +63,7 @@ The system is accessible via a CLI tool and a web interface.
 ### 4. Inspect the pipeline
 - Open the **Pipeline** tab on any agent to see a visual graph of its LangGraph flow.
 
-### 5. CLI usage
+### 5. CLI usage *(In Progress)*
 ```bash
 # Query an agent
 rag query --agent programming "how do I reverse a linked list?"

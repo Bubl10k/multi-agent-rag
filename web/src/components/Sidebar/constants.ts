@@ -3,14 +3,14 @@ import type { LucideIcon } from 'lucide-react';
 import { ROUTES } from '@/router/router';
 
 export type ActionButtonDef = {
-  label: string;
+  labelKey: string;
   Icon: LucideIcon;
   path?: string;
 };
 
 export const ACTION_BUTTONS: ActionButtonDef[] = [
-  { label: 'Manage Agents', Icon: UserCog, path: ROUTES.AGENTS },
-  { label: 'LLM Models', Icon: Brain, path: ROUTES.LLM_MODELS },
-  { label: 'Collections', Icon: FolderOpen, path: ROUTES.COLLECTIONS },
-  { label: 'Dashboard', Icon: LayoutDashboard, path: ROUTES.DASHBOARD },
+  { labelKey: 'sidebar.manageAgents', Icon: UserCog, path: ROUTES.AGENTS },
+  { labelKey: 'sidebar.llmModels', Icon: Brain, path: ROUTES.LLM_MODELS },
+  { labelKey: 'sidebar.collections', Icon: FolderOpen, path: ROUTES.COLLECTIONS },
+  { labelKey: 'sidebar.dashboard', Icon: LayoutDashboard, path: ROUTES.DASHBOARD },
 ];

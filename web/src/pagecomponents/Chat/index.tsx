@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams } from 'react-router';
 import { Box, Divider, Typography } from '@mui/material';
 import { MessageSquare } from 'lucide-react';
@@ -10,6 +11,7 @@ import {
   useUpdateAgentMutation,
 } from '@/api/endpoints/agent';
 import { useGetConversationQuery } from '@/api/endpoints/conversation';
+import { useParseDocumentMutation } from '@/api/endpoints/documents';
 import { useGetLLMsQuery } from '@/api/endpoints/llm';
 import { useGetPlatformLLMsQuery } from '@/api/endpoints/platform_llm';
 import { parseLLMSelection } from '@/validation/agent';
@@ -19,6 +21,7 @@ import ChatInput from '@/components/Chat/ChatInput';
 import ThinkingBubble from '@/components/Chat/ThinkingBubble';
 
 const ChatPage = () => {
+  const { t } = useTranslation();
   const { agentId } = useParams<{ agentId: string }>();
   const [searchParams] = useSearchParams();
   const conversationId = searchParams.get('conversationId') ?? undefined;
@@ -78,6 +81,14 @@ const ChatPage = () => {
     initialMessages,
   });
 
+  const [parseDocument, { isLoading: isAttaching }] = useParseDocumentMutation();
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
+
+  const handleAttach = async (file: File) => {
+    const result = await parseDocument(file).unwrap();
+    setAttachedFile({ name: result.filename, content: result.content });
+  };
+
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -87,9 +98,13 @@ const ChatPage = () => {
 
   const handleSend = () => {
     const text = input.trim();
-    if (!text || isStreaming) return;
-    sendMessage(text);
+    if ((!text && !attachedFile) || isStreaming) return;
+    const message = attachedFile
+      ? `[File: ${attachedFile.name}]\n${attachedFile.content}${text ? `\n\n${text}` : ''}`
+      : text;
+    sendMessage(message);
     setInput('');
+    setAttachedFile(null);
   };
 
   const streamingMessage: Message | null = streamingContent
@@ -136,8 +151,8 @@ const ChatPage = () => {
             <MessageSquare size={40} strokeWidth={1.2} />
             <Typography variant="body2">
               {agent
-                ? `Start a conversation with ${agent.name}`
-                : 'Start a conversation'}
+                ? t('chat.startConversationWith', { name: agent.name })
+                : t('chat.startConversation')}
             </Typography>
           </Box>
         ) : (
@@ -170,12 +185,16 @@ const ChatPage = () => {
         onChange={setInput}
         onSend={handleSend}
         onStop={stopStreaming}
-        placeholder={agent ? `Message ${agent.name}…` : 'Message…'}
+        placeholder={agent ? t('chat.messagePlaceholderWith', { name: agent.name }) : t('chat.messagePlaceholder')}
         disabled={isStreaming}
         llms={llms}
         platformLlms={platformLlms}
         selectedLlmSelection={selectedLlmSelection}
         onLlmChange={handleLlmChange}
+        attachedFileName={attachedFile?.name}
+        onAttach={handleAttach}
+        onRemoveAttachment={() => setAttachedFile(null)}
+        isAttaching={isAttaching}
       />
     </Box>
   );

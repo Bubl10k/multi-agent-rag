@@ -19,8 +19,6 @@ const ChatMessage = ({ message, isTyping }: Props) => {
   const isUser = message.role === MessageRole.User;
   const isError = message.role === MessageRole.Error;
 
-  console.log('message', message);
-
   if (isError) {
     return (
       <Box
